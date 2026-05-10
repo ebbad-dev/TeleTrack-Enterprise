@@ -10,4 +10,4 @@ app = create_app()
 
 if __name__ == '__main__':
     # Run the server without the watchdog reloader to ensure stability during DB access
-    app.run(port=5000, debug=True, use_reloader=False)
+    app.run(port=5000, debug=True, use_reloader=True)
