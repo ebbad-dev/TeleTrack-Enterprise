@@ -47,7 +47,10 @@ export function TopologyPage() {
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center animate-pulse text-primary font-mono text-sm">INITIALIZING SCAN...</div>
         ) : (
-          <div className="w-full h-full relative overflow-hidden bg-cyber-grid bg-[length:50px_50px] opacity-20">
+          <div className="w-full h-full relative overflow-hidden">
+            {/* Background Grid */}
+            <div className="absolute inset-0 bg-cyber-grid bg-[length:50px_50px] opacity-10 pointer-events-none"></div>
+            
             <div className="absolute inset-0 flex items-center justify-center p-20">
               {/* Core Node */}
               <motion.div 

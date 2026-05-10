@@ -96,3 +96,9 @@
     background-color: rgba(0, 240, 255, 0.5);
   }
 }
+
+.bg-cyber-grid {
+  background-image: 
+    linear-gradient(var(--color-primary) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-primary) 1px, transparent 1px);
+}
