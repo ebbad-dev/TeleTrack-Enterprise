@@ -19,15 +19,39 @@ from routes import register_blueprints
 from auth.routes import auth_bp
 
 
-def create_app(config_class=None):
+def create_app(config_class=None, config_overrides=None):
     """Create and configure the Flask application."""
 
-    app = Flask(__name__)
+    # Force a consistent instance path relative to this file
+    instance_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance')
+    os.makedirs(instance_path, exist_ok=True)
+
+    app = Flask(__name__, instance_path=instance_path)
+
+    @app.route("/api/debug", methods=["GET"])
+    def debug_top():
+        import os
+        import sqlalchemy
+        try:
+            engine = db.engine
+            inspector = sqlalchemy.inspect(engine)
+            tables = inspector.get_table_names()
+            return jsonify({
+                "uri": app.config.get("SQLALCHEMY_DATABASE_URI"),
+                "tables": tables,
+                "cwd": os.getcwd()
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)})
 
     # Load configuration
     if config_class is None:
         config_class = get_config()
     app.config.from_object(config_class)
+
+    # Apply overrides if provided
+    if config_overrides:
+        app.config.update(config_overrides)
 
     # ─── Setup Logging ────────────────────────────────────────────
     log_level = getattr(logging, app.config.get("LOG_LEVEL", "INFO"))
