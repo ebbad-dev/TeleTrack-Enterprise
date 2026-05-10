@@ -345,6 +345,39 @@ class Notification(db.Model):
 
 
 # ═══════════════════════════════════════════════════════════════════
+# File Attachment
+# ═══════════════════════════════════════════════════════════════════
+
+
+class FileAttachment(TimestampMixin, db.Model):
+    """File evidence (screenshots, configs) attached to incidents."""
+
+    __tablename__ = "file_attachments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    incident_id = db.Column(db.Integer, db.ForeignKey("incidents.id"), nullable=True, index=True)
+    filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)  # bytes
+    mimetype = db.Column(db.String(100), nullable=False)
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+
+    uploader = db.relationship("User", foreign_keys=[uploaded_by_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "incident_id": self.incident_id,
+            "filename": self.filename,
+            "original_filename": self.original_filename,
+            "file_size": self.file_size,
+            "mimetype": self.mimetype,
+            "uploaded_by": self.uploader.full_name if self.uploader else "System",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════
 # Organization Models (Department, Team)
 # ═══════════════════════════════════════════════════════════════════
 

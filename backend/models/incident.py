@@ -65,6 +65,12 @@ class Incident(TimestampMixin, SoftDeleteMixin, db.Model):
         cascade="all, delete-orphan",
     )
     alerts = db.relationship("Alert", backref="incident", lazy="dynamic")
+    attachments = db.relationship(
+        "FileAttachment",
+        backref="incident",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self):
         return f"<Incident #{self.id} [{self.severity}] {self.title[:40]}>"

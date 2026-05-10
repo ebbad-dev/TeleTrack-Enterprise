@@ -28,13 +28,13 @@ export const alertsApi = {
 };
 
 export const exportApi = {
-  exportDevices: () => window.open('/api/export/devices', '_blank'),
-  exportAlerts: (params) => {
-    const query = new URLSearchParams(params).toString();
+  exportDevices: (format = 'csv') => window.open(`/api/export/devices?format=${format}`, '_blank'),
+  exportAlerts: (params, format = 'csv') => {
+    const query = new URLSearchParams({...params, format}).toString();
     window.open(`/api/export/alerts?${query}`, '_blank');
   },
-  exportIncidents: () => window.open('/api/export/incidents', '_blank'),
-  exportAuditLogs: () => window.open('/api/export/audit-logs', '_blank'),
+  exportIncidents: (format = 'csv') => window.open(`/api/export/incidents?format=${format}`, '_blank'),
+  exportAuditLogs: (format = 'csv') => window.open(`/api/export/audit-logs?format=${format}`, '_blank'),
 };
 
 export { networkApi } from './network';

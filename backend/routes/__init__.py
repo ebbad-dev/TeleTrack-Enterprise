@@ -7,6 +7,7 @@ from routes.dashboard import dashboard_bp
 from routes.devices import devices_bp
 from routes.alerts import alerts_bp
 from routes.export import export_bp
+from routes.files import files_bp
 from routes.crud import (
     technicians_bp, locations_bp, vendors_bp, maintenance_bp,
     network_bp, sla_bp, audit_bp, incidents_bp, notifications_bp,
@@ -21,6 +22,7 @@ def register_blueprints(app):
         devices_bp,
         alerts_bp,
         export_bp,
+        files_bp,
         technicians_bp,
         locations_bp,
         vendors_bp,

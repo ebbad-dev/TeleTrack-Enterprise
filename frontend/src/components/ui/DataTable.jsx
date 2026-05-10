@@ -131,15 +131,22 @@ export function DataTable({ columns: initialColumns, data, loading, globalFilter
                 Showing {table.getRowModel().rows.length} of {data.length} entries
               </div>
               {onExport && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={onExport}
-                  className="flex items-center space-x-1.5 text-xs font-mono text-textMuted hover:text-primary border border-border hover:border-primary/50"
-                >
-                  <Download size={14} />
-                  <span>{exportLabel}</span>
-                </Button>
+                <div className="relative group">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="flex items-center space-x-1.5 text-xs font-mono text-textMuted hover:text-primary border border-border hover:border-primary/50"
+                  >
+                    <Download size={14} />
+                    <span>EXPORT</span>
+                  </Button>
+                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:flex flex-col bg-surfaceHighlight border border-border rounded-md shadow-lg overflow-hidden min-w-[120px]">
+                    <button onClick={() => onExport('pdf')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">PDF Report</button>
+                    <button onClick={() => onExport('xlsx')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">Excel (XLSX)</button>
+                    <button onClick={() => onExport('csv')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">CSV Data</button>
+                    <button onClick={() => onExport('txt')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">Notepad (TXT)</button>
+                  </div>
+                </div>
               )}
             </div>
             <div className="flex space-x-2">

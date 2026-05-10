@@ -326,3 +326,25 @@ def get_device_metrics(device_id):
     except Exception as e:
         return error_response(str(e))
 
+
+@devices_bp.route("/discover", methods=["POST"])
+@jwt_required()
+@permission_required("devices:write")
+def discover_network():
+    """Trigger an automated subnet ping scan to discover devices."""
+    data = request.get_json()
+    if not data or "subnet" not in data:
+        from utils.response import error_response
+        return error_response("Subnet (CIDR format) is required", 400)
+
+    subnet = data["subnet"]
+    
+    # Trigger Celery task asynchronously
+    from tasks.discovery import scan_subnet
+    task = scan_subnet.delay(subnet, default_type=data.get("default_type", "Server"))
+    
+    from utils.response import success_response
+    return success_response({
+        "message": f"Network discovery initiated for {subnet}", 
+        "task_id": task.id
+    })
