@@ -1,0 +1,51 @@
+# ═══════════════════════════════════════════════════════════════════
+# TeleTrack Enterprise — Backend Dependencies
+# ═══════════════════════════════════════════════════════════════════
+
+# Core Framework
+flask>=3.0
+flask-cors>=4.0
+
+# Database & ORM
+flask-sqlalchemy>=3.1
+sqlalchemy>=2.0
+psycopg2-binary>=2.9
+alembic>=1.13
+flask-migrate>=4.0
+
+# Authentication & Security
+flask-jwt-extended>=4.6
+bcrypt>=4.1
+PyJWT>=2.8
+
+# Real-time
+flask-socketio>=5.3
+eventlet>=0.36
+
+# Rate Limiting
+flask-limiter>=3.5
+
+# Environment & Config
+python-dotenv>=1.0
+
+# Serialization
+marshmallow>=3.20
+marshmallow-sqlalchemy>=1.0
+
+# Background Tasks (Phase 2)
+celery>=5.3
+redis>=5.0
+
+# Monitoring (Phase 2)
+ping3>=4.0
+# pysnmp>=6.1
+
+# Production Server
+gunicorn>=21.2
+
+# Reporting (Phase 3)
+# reportlab>=4.1
+# weasyprint>=62.0
+
+# Utilities
+python-dateutil>=2.8

@@ -1,0 +1,110 @@
+# ═══════════════════════════════════════════════════════════════════
+# TeleTrack Enterprise — Docker Compose
+# PostgreSQL + Redis + Backend services
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+  # ─── PostgreSQL Database ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: teletrack-db
+    environment:
+      POSTGRES_USER: teletrack
+      POSTGRES_PASSWORD: teletrack_pass
+      POSTGRES_DB: teletrack_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teletrack -d teletrack_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Redis (Cache + Task Queue) ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: teletrack-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── pgAdmin (Database UI - Optional) ───────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: teletrack-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@teletrack.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_LISTEN_PORT: 5050
+    ports:
+      - "5050:5050"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Flask Backend API ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: teletrack-backend
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://teletrack:teletrack_pass@postgres:5432/teletrack_db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=teletrack_super_secure_jwt_key_2026
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Celery Worker (Ping Engine) ────────────────────────────────
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: teletrack-celery
+    command: celery -A celery_worker.celery worker --loglevel=info --beat
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://teletrack:teletrack_pass@postgres:5432/teletrack_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── React Frontend (Nginx) ─────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: teletrack-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
