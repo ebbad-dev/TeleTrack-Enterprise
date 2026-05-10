@@ -8,23 +8,28 @@ from models import (
 
 def seed_advanced(app):
     with app.app_context():
+        from werkzeug.security import generate_password_hash
         # 1. Ensure at least one User exists
-        if User.query.count() == 0:
+        from werkzeug.security import generate_password_hash
+        admin_user = User.query.filter_by(username="admin").first()
+        if not admin_user:
             from models import Role
             admin_role = Role.query.filter_by(name='admin').first()
-            user = User(
+            admin_user = User(
                 username="admin", 
                 email="admin@teletrack.corp", 
                 full_name="System Administrator",
-                password_hash="pbkdf2:sha256:260000$...", # Placeholder
                 status="active"
             )
             if admin_role:
-                user.roles.append(admin_role)
-            db.session.add(user)
-            db.session.commit()
+                admin_user.roles.append(admin_role)
+            db.session.add(admin_user)
+        
+        admin_user.password_hash = generate_password_hash("admin123")
+        db.session.commit()
+        print("Admin user verified/updated with password: admin123")
 
-        user_id = User.query.first().id
+        user_id = admin_user.id
 
         # 2. Locations
         if Location.query.count() < 4:
