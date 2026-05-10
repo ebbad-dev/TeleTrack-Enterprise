@@ -220,15 +220,13 @@ export function IncidentsPage() {
                         <span className="text-xs font-mono truncate">{file.original_filename}</span>
                         <span className="text-[10px] text-textMuted">({(file.file_size / 1024).toFixed(1)} KB)</span>
                       </div>
-                      <a 
-                        href={filesApi.getDownloadUrl(file.id)} 
-                        target="_blank" 
-                        rel="noreferrer"
+                      <button 
+                        onClick={() => filesApi.downloadAttachment(file.id, file.original_filename)} 
                         className="p-1.5 text-textMuted hover:text-primary transition-colors"
                         title="Download Evidence"
                       >
                         <DownloadIcon size={14} />
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>

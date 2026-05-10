@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus } from 'lucide-react';
-import { devicesApi, exportApi } from '../api';
+import { devicesApi, locationsApi, exportApi } from '../api';
 import { DataTable } from '../components/ui/DataTable';
 import { Badge } from '../components/ui/Badge';
 import { DataModal } from '../components/ui/DataModal';
@@ -11,6 +11,7 @@ export function DevicesPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [locations, setLocations] = useState([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -19,10 +20,14 @@ export function DevicesPage() {
   const fetchData = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await devicesApi.getDevices();
-      if (res.success && res.data) setData(res.data);
+      const [devRes, locRes] = await Promise.all([
+        devicesApi.getDevices(),
+        locationsApi.getLocations()
+      ]);
+      if (devRes.success) setData(devRes.data);
+      if (locRes.success) setLocations(locRes.data);
     } catch (error) {
-      console.error('Failed to fetch devices', error);
+      console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
     }
@@ -48,17 +53,23 @@ export function DevicesPage() {
   const handleSave = async (formData) => {
     setIsSaving(true);
     try {
+      // Ensure numeric ID
+      const payload = {
+        ...formData,
+        location_id: parseInt(formData.location_id)
+      };
+
       if (editingRecord) {
-        await devicesApi.updateDevice(editingRecord.id, formData);
+        await devicesApi.updateDevice(editingRecord.id, payload);
       } else {
-        await devicesApi.createDevice(formData);
+        await devicesApi.createDevice(payload);
       }
       await fetchData(false);
       setIsModalOpen(false);
       setEditingRecord(null);
     } catch (e) {
       console.error(e);
-      alert("Save failed.");
+      alert(e.error || "Save failed.");
     } finally {
       setIsSaving(false);
     }
@@ -89,7 +100,13 @@ export function DevicesPage() {
       { value: 'offline', label: 'Offline' },
       { value: 'warning', label: 'Warning' }
     ]},
-    { name: 'location_id', label: 'Location ID (Optional)' },
+    { 
+      name: 'location_id', 
+      label: 'Site Location', 
+      type: 'select', 
+      required: true, 
+      options: locations.map(l => ({ value: l.id, label: `${l.location_name} (${l.city})` }))
+    },
   ];
 
   const columns = [

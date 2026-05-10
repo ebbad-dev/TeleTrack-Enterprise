@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ShieldAlert, Plus } from 'lucide-react';
-import { alertsApi, exportApi } from '../api';
+import { alertsApi, devicesApi, exportApi } from '../api';
 import { DataTable } from '../components/ui/DataTable';
 import { Badge } from '../components/ui/Badge';
 import { DataModal } from '../components/ui/DataModal';
@@ -11,7 +11,8 @@ export function AlertsPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState('');
-
+  const [devices, setDevices] = useState([]);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -19,8 +20,12 @@ export function AlertsPage() {
   const fetchData = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await alertsApi.getAlerts();
-      if (res.success && res.data) setData(res.data);
+      const [alertRes, devRes] = await Promise.all([
+        alertsApi.getAlerts(),
+        devicesApi.getDevices()
+      ]);
+      if (alertRes.success) setData(alertRes.data);
+      if (devRes.success) setDevices(devRes.data);
     } catch (error) {
       console.error('Failed to fetch alerts', error);
     } finally {
@@ -48,10 +53,15 @@ export function AlertsPage() {
   const handleSave = async (formData) => {
     setIsSaving(true);
     try {
+      const payload = {
+        ...formData,
+        device_id: parseInt(formData.device_id)
+      };
+
       if (editingRecord) {
-        await alertsApi.updateAlert(editingRecord.id, formData);
+        await alertsApi.updateAlert(editingRecord.id, payload);
       } else {
-        await alertsApi.createAlert(formData);
+        await alertsApi.createAlert(payload);
       }
       await fetchData(false);
       setIsModalOpen(false);
@@ -75,7 +85,13 @@ export function AlertsPage() {
   };
 
   const modalFields = [
-    { name: 'device_id', label: 'Device ID', required: true },
+    { 
+      name: 'device_id', 
+      label: 'Target Device', 
+      type: 'select', 
+      required: true, 
+      options: devices.map(d => ({ value: d.id, label: `${d.device_name} (${d.ip_address})` }))
+    },
     { name: 'message', label: 'Alert Message', type: 'textarea', required: true },
     { name: 'severity', label: 'Severity Level', type: 'select', required: true, options: [
       { value: 'critical', label: 'Critical' },

@@ -33,17 +33,39 @@ export const filesApi = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   getIncidentFiles: (incidentId) => apiClient.get(`/files/incident/${incidentId}`),
-  getDownloadUrl: (attachmentId) => `/api/files/download/${attachmentId}`,
+  downloadAttachment: (attachmentId, filename) => 
+    downloadFile(`/files/download/${attachmentId}`, filename),
+};
+
+const downloadFile = async (url, filename) => {
+  try {
+    const res = await apiClient.get(url, { responseType: 'blob' });
+    const blob = new Blob([res]);
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error('Download failed', error);
+    alert('DOWNLOAD FAILED. CHECK SYSTEM LOGS.');
+  }
 };
 
 export const exportApi = {
-  exportDevices: (format = 'csv') => window.open(`/api/export/devices?format=${format}`, '_blank'),
+  exportDevices: (format = 'csv') => 
+    downloadFile(`/export/devices?format=${format}`, `teletrack_devices.${format}`),
   exportAlerts: (params, format = 'csv') => {
     const query = new URLSearchParams({...params, format}).toString();
-    window.open(`/api/export/alerts?${query}`, '_blank');
+    downloadFile(`/export/alerts?${query}`, `teletrack_alerts.${format}`);
   },
-  exportIncidents: (format = 'csv') => window.open(`/api/export/incidents?format=${format}`, '_blank'),
-  exportAuditLogs: (format = 'csv') => window.open(`/api/export/audit-logs?format=${format}`, '_blank'),
+  exportIncidents: (format = 'csv') => 
+    downloadFile(`/export/incidents?format=${format}`, `teletrack_incidents.${format}`),
+  exportAuditLogs: (format = 'csv') => 
+    downloadFile(`/export/audit-logs?format=${format}`, `teletrack_audit_logs.${format}`),
 };
 
 export { networkApi } from './network';
