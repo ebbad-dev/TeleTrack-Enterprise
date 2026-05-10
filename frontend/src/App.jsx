@@ -12,6 +12,7 @@ import { VendorsPage } from './pages/VendorsPage';
 import { IncidentsPage } from './pages/IncidentsPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { TopologyPage } from './pages/TopologyPage';
 import useThemeStore from './store/themeStore';
 import useSocketStore from './store/socketStore';
 
@@ -59,6 +60,7 @@ function AnimatedRoutes() {
           <Route path="/incidents" element={<AnimatedPage><IncidentsPage /></AnimatedPage>} />
           <Route path="/maintenance" element={<AnimatedPage><MaintenancePage /></AnimatedPage>} />
           <Route path="/audit-logs" element={<AnimatedPage><AuditLogPage /></AnimatedPage>} />
+          <Route path="/topology" element={<AnimatedPage><TopologyPage /></AnimatedPage>} />
         </Route>
       </Routes>
     </AnimatePresence>

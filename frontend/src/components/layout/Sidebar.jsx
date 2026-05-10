@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Server, AlertTriangle, Users, Settings, LogOut, Activity, Flame, MapPin, Globe, Wrench, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Server, AlertTriangle, Users, Settings, LogOut, Activity, Flame, MapPin, Globe, Wrench, ShieldCheck, Network } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { cn } from '../ui/Card';
 
@@ -10,6 +10,7 @@ export function Sidebar() {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/devices', icon: Server, label: 'Devices' },
+    { to: '/topology', icon: Network, label: 'Topology' },
     { to: '/alerts', icon: AlertTriangle, label: 'Alerts' },
     { to: '/incidents', icon: Flame, label: 'Incidents' },
     { to: '/technicians', icon: Users, label: 'Operatives' },
