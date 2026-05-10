@@ -48,7 +48,7 @@ class Location(TimestampMixin, SoftDeleteMixin, db.Model):
             "latitude": float(self.latitude) if self.latitude else None,
             "longitude": float(self.longitude) if self.longitude else None,
             "image_url": self.image_url,
-            "device_count": self.devices.count() if hasattr(self, "devices") else 0,
+            "device_count": len(self.devices) if hasattr(self, "devices") and self.devices else 0,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -84,7 +84,7 @@ class Vendor(TimestampMixin, SoftDeleteMixin, db.Model):
             "support_email": self.support_email,
             "support_phone": self.support_phone,
             "website": self.website,
-            "device_count": len(self.devices) if self.devices else 0,
+            "device_count": len(self.devices) if hasattr(self, "devices") and self.devices else 0,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

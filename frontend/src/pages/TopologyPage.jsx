@@ -34,7 +34,7 @@ export function TopologyPage() {
 
   return (
     <motion.div 
-      className="h-full flex flex-col -m-6" # Use negative margins to bleed into the parent container
+      className="h-full flex flex-col -m-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
@@ -62,7 +62,7 @@ export function TopologyPage() {
               {/* Device Nodes */}
               {devices.map((device, i) => {
                 const angle = (i / devices.length) * 2 * Math.PI;
-                # Dynamic radius based on screen size and device count
+                // Dynamic radius based on screen size and device count
                 const radius = Math.min(window.innerWidth, window.innerHeight) * 0.35 + (i * 2);
                 const x = Math.cos(angle) * radius;
                 const y = Math.sin(angle) * radius;
