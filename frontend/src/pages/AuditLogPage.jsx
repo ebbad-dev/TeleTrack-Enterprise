@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ShieldCheck } from 'lucide-react';
-import { auditApi } from '../api';
+import { auditApi, exportApi } from '../api';
 import { DataTable } from '../components/ui/DataTable';
 import { format } from 'date-fns';
 
@@ -105,6 +105,8 @@ export function AuditLogPage() {
           loading={loading} 
           globalFilter={globalFilter} 
           setGlobalFilter={setGlobalFilter} 
+          onExport={() => exportApi.exportAuditLogs()}
+          exportLabel="Export CSV"
         />
       </div>
     </motion.div>
