@@ -1,76 +1,86 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ShieldCheck } from 'lucide-react';
-import { auditApi, exportApi } from '../api';
+import { Search, History, Download, TerminalSquare } from 'lucide-react';
+import { exportApi } from '../api';
+import apiClient from '../api/client';
+import { extractItems } from '../api/helpers';
 import { DataTable } from '../components/ui/DataTable';
-import { format } from 'date-fns';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import useToastStore from '../store/toastStore';
 
 export function AuditLogPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState('');
+  const toast = useToastStore;
+
+  const fetchData = async () => {
+    try {
+      const res = await apiClient.get('/api/audit-logs');
+      setData(extractItems(res));
+    } catch (error) {
+      console.error('Failed to fetch audit logs', error);
+      toast.error('Failed to load audit logs');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await auditApi.getLogs();
-        if (res.success && res.data) {
-          const items = res.data.items || (Array.isArray(res.data) ? res.data : []);
-          setData(items);
-        }
-      } catch (error) {
-        console.error('Failed to fetch audit logs', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
   const columns = [
     {
       accessorKey: 'timestamp',
-      header: 'Event Time',
-      cell: (info) => {
-        const date = new Date(info.getValue());
-        return (
-          <div className="font-mono text-xs text-textMuted">
-            <span className="text-primary">{format(date, 'yyyy-MM-dd')}</span>
-            <br />
-            {format(date, 'HH:mm:ss.SSS')}
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'user',
-      header: 'Identity',
-      cell: (info) => {
-        const user = info.getValue();
-        return (
-          <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 rounded bg-primary/20 border border-primary/50 flex items-center justify-center">
-              <ShieldCheck size={12} className="text-primary" />
-            </div>
-            <span className="font-bold text-textMain text-xs">{user ? user.username : 'SYSTEM'}</span>
-          </div>
-        );
-      },
+      header: 'System Time',
+      cell: (info) => (
+        <div className="font-mono text-xs text-textMuted">
+          <span className="text-primary">{new Date(info.getValue()).toLocaleDateString()}</span>
+          <br />
+          {new Date(info.getValue()).toLocaleTimeString()}
+        </div>
+      ),
     },
     {
       accessorKey: 'action',
-      header: 'Action',
-      cell: (info) => <span className="font-mono text-xs uppercase tracking-widest text-primary/80">{info.getValue()}</span>,
+      header: 'Execution Signature',
+      cell: (info) => {
+        const action = info.getValue();
+        return (
+          <div className="flex items-center space-x-2">
+            <TerminalSquare size={14} className="text-primary/70" />
+            <span className="font-mono text-sm font-bold tracking-widest text-textMain">{action}</span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'resource',
-      header: 'Target Resource',
-      cell: (info) => <span className="text-xs text-textMuted">{info.getValue()}</span>,
+      header: 'Target Module',
+      cell: (info) => <Badge variant="default">{info.getValue()?.toUpperCase()}</Badge>,
     },
     {
-      accessorKey: 'ip_address',
-      header: 'Source IP',
-      cell: (info) => <span className="font-mono text-xs text-textMuted">{info.getValue()}</span>,
+      accessorKey: 'user.username',
+      header: 'Operator ID',
+      cell: (info) => (
+        <span className="font-mono text-xs text-textMuted flex items-center">
+          {info.getValue() || `ID-${info.row.original.user_id}`}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'details',
+      header: 'Payload / Details',
+      cell: (info) => {
+        const details = info.getValue();
+        return (
+          <div className="max-w-[300px] truncate text-xs font-mono text-textMuted">
+            {details ? JSON.stringify(details) : '—'}
+          </div>
+        );
+      },
     },
   ];
 
@@ -83,21 +93,23 @@ export function AuditLogPage() {
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-textMain tracking-wide">SECURITY <span className="text-primary neon-text">AUDIT</span></h1>
-          <p className="text-textMuted mt-1 font-mono text-sm uppercase">Immutable Action Trail</p>
+          <h1 className="text-3xl font-bold text-textMain tracking-wide">AUDIT <span className="text-warning neon-text">TRAIL</span></h1>
+          <p className="text-textMuted mt-1 font-mono text-sm uppercase">Immutable Security Ledger</p>
         </div>
         
-        <div className="relative w-full md:w-72">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary">
-            <Search size={18} />
+        <div className="flex items-center space-x-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-72">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-warning">
+              <Search size={18} />
+            </div>
+            <input
+              type="text"
+              value={globalFilter ?? ''}
+              onChange={e => setGlobalFilter(e.target.value)}
+              className="w-full bg-surface/50 backdrop-blur-md border border-warning/30 rounded-lg py-2 pl-10 pr-4 text-textMain focus:outline-none focus:border-warning focus:ring-1 focus:ring-warning shadow-[0_0_15px_rgba(255,179,0,0.1)] transition-all placeholder-textMuted/50 font-mono text-sm"
+              placeholder="Query logs..."
+            />
           </div>
-          <input
-            type="text"
-            value={globalFilter ?? ''}
-            onChange={e => setGlobalFilter(e.target.value)}
-            className="w-full bg-surface/50 backdrop-blur-md border border-primary/30 rounded-lg py-2 pl-10 pr-4 text-textMain focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-[0_0_15px_rgba(0,240,255,0.1)] transition-all placeholder-textMuted/50 font-mono text-sm"
-            placeholder="Scan security events..."
-          />
         </div>
       </div>
 

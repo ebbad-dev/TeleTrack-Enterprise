@@ -1,141 +1,195 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Network, Server, HardDrive, Shield, Router } from 'lucide-react';
-import { devicesApi } from '../api';
+import { Network, Maximize, Minimize, RefreshCw } from 'lucide-react';
+import ForceGraph3D from 'react-force-graph-3d';
+import * as THREE from 'three';
+import { devicesApi, networkApi } from '../api';
+import { extractItems } from '../api/helpers';
 import { Card } from '../components/ui/Card';
+import useToastStore from '../store/toastStore';
 
 export function TopologyPage() {
-  const [devices, setDevices] = useState([]);
+  const [nodes, setNodes] = useState([]);
+  const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const containerRef = useRef(null);
+  const graphRef = useRef();
+  const toast = useToastStore;
 
-  useEffect(() => {
-    const fetchDevices = async () => {
-      try {
-        const res = await devicesApi.getDevices();
-        if (res.success) setDevices(res.data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDevices();
-  }, []);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch all devices and links
+      const [devRes, linkRes] = await Promise.all([
+        devicesApi.getDevices({ per_page: 1000 }),
+        networkApi.getLinks({ per_page: 1000 })
+      ]);
+      
+      const devicesData = extractItems(devRes);
+      const linksData = extractItems(linkRes);
 
-  const getIcon = (type) => {
-    switch (type?.toLowerCase()) {
-      case 'router': return <Router size={24} />;
-      case 'switch': return <Network size={24} />;
-      case 'firewall': return <Shield size={24} />;
-      case 'storage': return <HardDrive size={24} />;
-      default: return <Server size={24} />;
+      // Transform for react-force-graph
+      const formattedNodes = devicesData.map(d => ({
+        id: d.id,
+        name: d.device_name,
+        type: d.device_type,
+        status: d.status,
+        ip: d.ip_address,
+        val: d.device_type === 'Router' ? 25 : d.device_type === 'Switch' ? 20 : 15,
+        color: d.status === 'online' ? '#00f0ff' : d.status === 'degraded' ? '#ffb300' : '#ff003c'
+      }));
+
+      // Only include links where both source and target exist in nodes
+      const nodeIds = new Set(formattedNodes.map(n => n.id));
+      const formattedLinks = linksData
+        .filter(l => nodeIds.has(l.source_device_id) && nodeIds.has(l.target_device_id))
+        .map(l => ({
+          source: l.source_device_id,
+          target: l.target_device_id,
+          type: l.link_type,
+          status: l.status,
+          bandwidth: l.bandwidth,
+          color: l.status === 'active' ? '#00f0ff' : '#ffb300'
+        }));
+
+      setNodes(formattedNodes);
+      setLinks(formattedLinks);
+      
+      // Auto-fit camera after data loads
+      setTimeout(() => {
+        if (graphRef.current) {
+          graphRef.current.zoomToFit(400, 50);
+        }
+      }, 500);
+
+    } catch (error) {
+      console.error('Topology fetch error', error);
+      toast.error('Failed to load network topology');
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Handle responsive sizing
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight
+        });
+      }
+    };
+    
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, [isFullscreen]);
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    setTimeout(() => {
+      if (graphRef.current) graphRef.current.zoomToFit(400, 50);
+    }, 100);
+  };
+
+  const graphData = useMemo(() => ({ nodes, links }), [nodes, links]);
+
   return (
     <motion.div 
-      className="h-full flex flex-col -m-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      className={`space-y-6 flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 p-6 bg-background' : 'h-full'}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
     >
-      <div className="p-6 pb-2 shrink-0">
-        <h1 className="text-3xl font-bold text-textMain tracking-wide">INFRASTRUCTURE <span className="text-primary neon-text">TOPOLOGY</span></h1>
-        <p className="text-textMuted mt-1 font-mono text-sm uppercase">Spatial Asset Mapping</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+        <div>
+          <h1 className="text-3xl font-bold text-textMain tracking-wide">NETWORK <span className="text-primary neon-text">TOPOLOGY</span></h1>
+          <p className="text-textMuted mt-1 font-mono text-sm uppercase">Interactive 3D Infrastructure Map</p>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <button 
+            onClick={fetchData}
+            className="p-2 text-textMuted hover:text-primary transition-colors bg-surfaceHighlight rounded border border-border hover:border-primary/50"
+            title="Refresh Topology"
+          >
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+          </button>
+          <button 
+            onClick={toggleFullscreen}
+            className="p-2 text-textMuted hover:text-primary transition-colors bg-surfaceHighlight rounded border border-border hover:border-primary/50"
+            title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+          >
+            {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 bg-surfaceHighlight/5 border-t border-border relative overflow-hidden">
+      <Card className="flex-1 p-0 overflow-hidden relative border-primary/30" ref={containerRef}>
         {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center animate-pulse text-primary font-mono text-sm">INITIALIZING SCAN...</div>
-        ) : (
-          <div className="w-full h-full relative overflow-hidden">
-            {/* Background Grid */}
-            <div className="absolute inset-0 bg-cyber-grid bg-[length:50px_50px] opacity-10 pointer-events-none"></div>
-            
-            <div className="absolute inset-0 flex items-center justify-center p-20">
-              {/* Core Node */}
-              <motion.div 
-                className="w-32 h-32 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center shadow-[0_0_50px_rgba(0,240,255,0.4)] z-20 relative"
-                animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 30px rgba(0,240,255,0.3)", "0 0 60px rgba(0,240,255,0.6)", "0 0 30px rgba(0,240,255,0.3)"] }}
-                transition={{ repeat: Infinity, duration: 4 }}
-              >
-                <Network size={56} className="text-primary" />
-                <div className="absolute -bottom-10 whitespace-nowrap text-xs font-mono text-primary font-bold tracking-widest bg-background/80 px-2 py-1 rounded border border-primary/30">CORE-FABRIC-01</div>
-              </motion.div>
-
-              {/* Device Nodes */}
-              {devices.map((device, i) => {
-                const angle = (i / devices.length) * 2 * Math.PI;
-                // Dynamic radius based on screen size and device count
-                const radius = Math.min(window.innerWidth, window.innerHeight) * 0.35 + (i * 2);
-                const x = Math.cos(angle) * radius;
-                const y = Math.sin(angle) * radius;
-
-                return (
-                  <motion.div
-                    key={device.id}
-                    className="absolute z-10"
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1, x, y }}
-                    transition={{ delay: i * 0.05, type: 'spring', damping: 12 }}
-                  >
-                    <div className={`relative group flex flex-col items-center justify-center w-20 h-20 rounded-xl bg-surface/90 backdrop-blur-sm border-2 transition-all hover:scale-125 cursor-pointer shadow-lg ${device.status === 'online' ? 'border-primary/50 hover:border-primary shadow-primary/10' : 'border-error/50 hover:border-error shadow-error/10'}`}>
-                      <div className={`absolute inset-0 rounded-xl blur-md opacity-20 group-hover:opacity-60 transition-opacity ${device.status === 'online' ? 'bg-primary' : 'bg-error'}`}></div>
-                      <div className={device.status === 'online' ? 'text-primary' : 'text-error'}>
-                        {getIcon(device.device_type)}
-                      </div>
-                      
-                      {/* Condensed Label */}
-                      <div className="absolute -bottom-6 opacity-60 group-hover:opacity-100 transition-opacity text-[9px] font-mono text-textMuted uppercase truncate max-w-[80px]">
-                        {device.device_name}
-                      </div>
-
-                      {/* Tooltip Card */}
-                      <div className="absolute bottom-full mb-4 hidden group-hover:block z-40 bg-surfaceHighlight/95 backdrop-blur-xl border border-primary/50 p-4 rounded-lg shadow-2xl min-w-[200px] border-b-4 border-b-primary animate-in fade-in zoom-in duration-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${device.status === 'online' ? 'bg-success/20 text-success' : 'bg-error/20 text-error'}`}>
-                            {device.status}
-                          </span>
-                          <span className="text-[10px] font-mono text-textMuted">{device.device_type}</span>
-                        </div>
-                        <h4 className="text-sm font-bold text-textMain mb-1">{device.device_name}</h4>
-                        <div className="space-y-1 border-t border-border mt-2 pt-2">
-                          <div className="flex justify-between text-[10px]">
-                            <span className="text-textMuted">IP ADDRESS</span>
-                            <span className="font-mono text-primary">{device.ip_address}</span>
-                          </div>
-                          <div className="flex justify-between text-[10px]">
-                            <span className="text-textMuted">MODEL</span>
-                            <span className="font-mono">{device.model || 'GENERIC-V4'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Animated Connection Path */}
-                      <svg className="absolute top-1/2 left-1/2 w-[800px] h-[800px] pointer-events-none -z-10 overflow-visible" style={{ transform: `translate(-50%, -50%) rotate(${angle}rad)` }}>
-                        <line 
-                          x1="0" y1="0" x2={-radius} y2="0" 
-                          stroke="currentColor" 
-                          strokeWidth="1.5" 
-                          strokeDasharray="8 4"
-                          className={`${device.status === 'online' ? 'text-primary/30' : 'text-error/30'}`}
-                        />
-                        {device.status === 'online' && (
-                          <motion.circle
-                            r="3"
-                            fill="#00f0ff"
-                            animate={{ cx: [0, -radius] }}
-                            transition={{ repeat: Infinity, duration: 2, ease: "linear", delay: i * 0.2 }}
-                          />
-                        )}
-                      </svg>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10 backdrop-blur-sm">
+             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+             <div className="mt-4 text-primary font-mono text-sm tracking-widest animate-pulse">MAPPING NETWORK ROUTES...</div>
+           </div>
+        ) : nodes.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-textMuted font-mono text-lg">NO NETWORK DATA AVAILABLE</p>
           </div>
+        ) : (
+          <ForceGraph3D
+            ref={graphRef}
+            width={dimensions.width}
+            height={dimensions.height}
+            graphData={graphData}
+            nodeLabel={n => `<div style="background: rgba(10,10,15,0.9); padding: 8px; border: 1px solid ${n.color}; border-radius: 4px; font-family: monospace;">
+                <b style="color: white">${n.name}</b><br/>
+                Type: ${n.type}<br/>
+                IP: ${n.ip}<br/>
+                Status: <span style="color: ${n.color}">${n.status.toUpperCase()}</span>
+              </div>`}
+            nodeColor={n => n.color}
+            nodeRelSize={1}
+            nodeResolution={16}
+            linkColor={l => l.color}
+            linkWidth={l => l.bandwidth === '10 Gbps' ? 2 : l.bandwidth === '100 Gbps' ? 3 : 1}
+            linkResolution={6}
+            linkDirectionalParticles={l => l.status === 'active' ? 2 : 0}
+            linkDirectionalParticleWidth={2}
+            linkDirectionalParticleSpeed={0.01}
+            backgroundColor="#0a0a0f"
+            onNodeClick={n => {
+              // Focus camera on clicked node
+              const distance = 150;
+              const distRatio = 1 + distance/Math.hypot(n.x, n.y, n.z);
+              graphRef.current.cameraPosition(
+                { x: n.x * distRatio, y: n.y * distRatio, z: n.z * distRatio }, 
+                n, 
+                1000  
+              );
+            }}
+          />
         )}
-      </div>
+        
+        {/* Graph Overlay UI */}
+        <div className="absolute bottom-4 left-4 bg-surfaceHighlight/80 backdrop-blur-md p-3 rounded border border-border flex flex-col space-y-2 pointer-events-none">
+          <p className="text-xs font-mono text-textMuted mb-1 font-bold">NODE STATUS LEGEND</p>
+          <div className="flex items-center text-xs font-mono text-textMain"><div className="w-3 h-3 rounded-full bg-[#00f0ff] mr-2 shadow-[0_0_5px_#00f0ff]"></div> ONLINE</div>
+          <div className="flex items-center text-xs font-mono text-textMain"><div className="w-3 h-3 rounded-full bg-[#ffb300] mr-2 shadow-[0_0_5px_#ffb300]"></div> DEGRADED</div>
+          <div className="flex items-center text-xs font-mono text-textMain"><div className="w-3 h-3 rounded-full bg-[#ff003c] mr-2 shadow-[0_0_5px_#ff003c]"></div> OFFLINE</div>
+          
+          <div className="mt-2 pt-2 border-t border-border flex justify-between text-[10px] font-mono text-textMuted">
+            <span>NODES: {nodes.length}</span>
+            <span>LINKS: {links.length}</span>
+          </div>
+        </div>
+      </Card>
     </motion.div>
   );
 }

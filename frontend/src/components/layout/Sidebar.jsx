@@ -4,7 +4,7 @@ import { LayoutDashboard, Server, AlertTriangle, Users, Settings, LogOut, Activi
 import useAuthStore from '../../store/authStore';
 import { cn } from '../ui/Card';
 
-export function Sidebar() {
+export function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout } = useAuthStore();
 
   const navItems = [
@@ -21,12 +21,18 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 h-screen bg-surface border-r border-border flex flex-col relative z-20">
-      <div className="p-6 border-b border-border flex items-center space-x-3">
-        <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center border border-primary/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-          <Activity size={18} className="text-primary" />
+    <aside className={cn(
+      "fixed md:static inset-y-0 left-0 w-64 bg-surface border-r border-border flex flex-col z-40 transition-transform duration-300 ease-in-out",
+      isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+    )}>
+      <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center border border-primary/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]">
+            <Activity size={18} className="text-primary" />
+          </div>
+          <span className="text-xl font-bold tracking-wider text-textMain neon-text">TeleTrack</span>
         </div>
-        <span className="text-xl font-bold tracking-wider text-textMain neon-text">TeleTrack</span>
+        {/* Mobile close button could go here if needed, but overlay handles it */}
       </div>
 
       <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto custom-scrollbar">
@@ -34,6 +40,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={() => setIsOpen && setIsOpen(false)}
             className={({ isActive }) => cn(
               "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300",
               isActive 

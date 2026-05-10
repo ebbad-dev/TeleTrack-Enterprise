@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create the axios instance
 const apiClient = axios.create({
-  baseURL: '/api', // Proxied by Vite to http://127.0.0.1:5000
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,7 +22,13 @@ apiClient.interceptors.request.use(
 
 // Add a response interceptor to handle token refresh and 401s
 apiClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // For blob responses (file downloads), return the raw response
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+    return response.data;
+  },
   async (error) => {
     const originalRequest = error.config;
     
@@ -52,6 +58,10 @@ apiClient.interceptors.response.use(
           // Retry the original request with the new token
           originalRequest.headers.Authorization = `Bearer ${res.data.access_token}`;
           const retryResponse = await axios(originalRequest);
+          // Apply same parsing logic on retry
+          if (originalRequest.responseType === 'blob') {
+            return retryResponse;
+          }
           return retryResponse.data;
         }
       } catch (refreshError) {
@@ -67,5 +77,30 @@ apiClient.interceptors.response.use(
     return Promise.reject(error.response?.data || error);
   }
 );
+
+// Helper for downloading files (bypasses JSON interceptor)
+export async function downloadFile(url, filename) {
+  try {
+    const token = localStorage.getItem('accessToken');
+    const response = await axios.get(`/api${url}`, {
+      responseType: 'blob',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    const blob = new Blob([response.data]);
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error('Download failed', error);
+    throw error;
+  }
+}
 
 export default apiClient;

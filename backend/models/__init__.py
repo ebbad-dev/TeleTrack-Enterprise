@@ -31,6 +31,7 @@ from models.supporting import (
     NetworkLink,
     AuditLog,
     Notification,
+    FileAttachment,
     Department,
     Team,
 )
@@ -69,6 +70,7 @@ __all__ = [
     "NetworkLink",
     "AuditLog",
     "Notification",
+    "FileAttachment",
     "Department",
     "Team",
 ]

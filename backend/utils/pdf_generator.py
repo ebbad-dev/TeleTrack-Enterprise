@@ -74,12 +74,22 @@ def generate_pdf_report(title, data):
 
     # ═══════════════════════════════ DOCUMENT BODY ═══════════════════════════════
 
+    def add_header_footer(canvas, doc):
+        canvas.saveState()
+        # Footer
+        canvas.setFont('Helvetica', 9)
+        canvas.setFillColor(colors.gray)
+        canvas.drawString(30, 20, f"TeleTrack Enterprise | Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        canvas.drawRightString(page_width - 30, 20, f"Page {doc.page}")
+        canvas.restoreState()
+
     elements.append(Paragraph(f"TELETRACK ENTERPRISE: {title.upper()}", title_style))
-    elements.append(Paragraph(f"SYSTEM AUDIT REPORT | GENERATED ON: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", subtitle_style))
+    elements.append(Paragraph(f"SYSTEM AUDIT REPORT | {len(data)} RECORDS", subtitle_style))
+    elements.append(Spacer(1, 10))
     
     if not data:
         elements.append(Paragraph("NO DATA RECORDS MATCHING CRITERIA FOUND.", styles['Normal']))
-        doc.build(elements)
+        doc.build(elements, onFirstPage=add_header_footer, onLaterPages=add_header_footer)
         return buffer.getvalue()
 
     headers = list(data[0].keys())
@@ -93,7 +103,7 @@ def generate_pdf_report(title, data):
     col_widths = []
     # Identify "Heavy" columns that need wrapping
     heavy_cols = ['message', 'description', 'note', 'reason', 'summary', 'address', 'payload']
-    medium_cols = ['device', 'name', 'title', 'subject', 'technician']
+    medium_cols = ['device', 'name', 'title', 'subject', 'technician', 'email', 'website']
     
     for h in headers:
         h_low = h.lower()
@@ -102,7 +112,7 @@ def generate_pdf_report(title, data):
         elif any(x in h_low for x in medium_cols):
             col_widths.append(usable_width * 0.15) # 15% for medium text
         elif h_low in ['id', 'status', 'priority', 'severity']:
-            col_widths.append(usable_width * 0.05) # 5% for compact fields
+            col_widths.append(usable_width * 0.08) # 8% for compact fields
         else:
             col_widths.append(None) # Auto-calculate later
 
@@ -119,7 +129,7 @@ def generate_pdf_report(title, data):
             final_widths.append(w)
             
     # Shrink fonts if we still have too many columns
-    if num_cols > 12:
+    if num_cols > 10:
         cell_style.fontSize = 7
         cell_style.leading = 9
         header_style.fontSize = 8
@@ -133,7 +143,11 @@ def generate_pdf_report(title, data):
     for row in data:
         row_cells = []
         for val in row.values():
-            text = str(val) if val is not None else ""
+            # Handle booleans and None properly
+            if isinstance(val, bool):
+                text = "YES" if val else "NO"
+            else:
+                text = str(val) if val is not None else "—"
             row_cells.append(Paragraph(text, cell_style))
         table_data.append(row_cells)
         
@@ -146,11 +160,11 @@ def generate_pdf_report(title, data):
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
         ('TOPPADDING', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#1a1a2e')), # Subtle grid
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e0e0e0')), # Subtle grid
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#ffffff'), colors.HexColor('#f8f9fa')]),
     ]))
 
     elements.append(t)
-    doc.build(elements)
+    doc.build(elements, onFirstPage=add_header_footer, onLaterPages=add_header_footer)
     
     return buffer.getvalue()

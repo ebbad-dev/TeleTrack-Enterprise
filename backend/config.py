@@ -22,12 +22,25 @@ class BaseConfig:
         "sqlite:///teletrack.db",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_size": 10,
-        "pool_recycle": 300,
-        "pool_pre_ping": True,
-        "max_overflow": 20,
-    }
+
+    @property
+    def _is_sqlite(self):
+        return "sqlite" in (os.getenv("DATABASE_URL", "sqlite:///teletrack.db"))
+
+    # Engine options — SQLite uses NullPool; PostgreSQL uses connection pooling
+    @classmethod
+    def init_engine_options(cls):
+        uri = os.getenv("DATABASE_URL", "sqlite:///teletrack.db")
+        if "sqlite" in uri:
+            return {"pool_pre_ping": True}
+        return {
+            "pool_size": 10,
+            "pool_recycle": 300,
+            "pool_pre_ping": True,
+            "max_overflow": 20,
+        }
+
+    SQLALCHEMY_ENGINE_OPTIONS = {}  # Set dynamically in create_app
 
     # JWT
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback-jwt-key")

@@ -1,4 +1,4 @@
-import apiClient from './client';
+import apiClient, { downloadFile } from './client';
 
 export const dashboardApi = {
   getSummary: () => apiClient.get('/dashboard/summary'),
@@ -23,9 +23,14 @@ export const devicesApi = {
 
 export const alertsApi = {
   getAlerts: (params) => apiClient.get('/alerts', { params }),
+  getAlert: (id) => apiClient.get(`/alerts/${id}`),
   createAlert: (data) => apiClient.post('/alerts', data),
   updateAlert: (id, data) => apiClient.put(`/alerts/${id}`, data),
   deleteAlert: (id) => apiClient.delete(`/alerts/${id}`),
+  assignAlert: (id, data) => apiClient.post(`/alerts/${id}/assign`, data),
+  resolveAlert: (id, data) => apiClient.post(`/alerts/${id}/resolve`, data),
+  getComments: (id) => apiClient.get(`/alerts/${id}/comments`),
+  addComment: (id, data) => apiClient.post(`/alerts/${id}/comments`, data),
 };
 
 export const filesApi = {
@@ -37,28 +42,10 @@ export const filesApi = {
     downloadFile(`/files/download/${attachmentId}`, filename),
 };
 
-const downloadFile = async (url, filename) => {
-  try {
-    const res = await apiClient.get(url, { responseType: 'blob' });
-    const blob = new Blob([res]);
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-  } catch (error) {
-    console.error('Download failed', error);
-    alert('DOWNLOAD FAILED. CHECK SYSTEM LOGS.');
-  }
-};
-
 export const exportApi = {
   exportDevices: (format = 'csv') => 
     downloadFile(`/export/devices?format=${format}`, `teletrack_devices.${format}`),
-  exportAlerts: (params, format = 'csv') => {
+  exportAlerts: (params = {}, format = 'csv') => {
     const query = new URLSearchParams({...params, format}).toString();
     downloadFile(`/export/alerts?${query}`, `teletrack_alerts.${format}`);
   },

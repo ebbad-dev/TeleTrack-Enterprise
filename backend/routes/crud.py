@@ -112,6 +112,17 @@ def get_locations():
     except Exception as e:
         return error_response(str(e))
 
+@locations_bp.route("/<int:lid>", methods=["GET"])
+@jwt_required()
+def get_location(lid):
+    try:
+        loc = Location.query.filter_by(id=lid, is_deleted=False).first()
+        if not loc:
+            return error_response("Location not found", 404)
+        return success_response(loc.to_dict())
+    except Exception as e:
+        return error_response(str(e))
+
 @locations_bp.route("", methods=["POST"])
 @jwt_required()
 @permission_required("locations:write")
@@ -214,6 +225,21 @@ def update_vendor(vid):
         db.session.rollback()
         return error_response(str(e))
 
+@vendors_bp.route("/<int:vid>", methods=["DELETE"])
+@jwt_required()
+@permission_required("vendors:delete")
+def delete_vendor(vid):
+    try:
+        v = Vendor.query.filter_by(id=vid, is_deleted=False).first()
+        if not v:
+            return error_response("Vendor not found", 404)
+        v.soft_delete()
+        db.session.commit()
+        return success_response(message="Vendor deleted")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
 # ═══════════════════════════════ MAINTENANCE ═══════════════════════════════
 
 maintenance_bp = Blueprint("maintenance", __name__, url_prefix="/api/maintenance")
@@ -248,6 +274,40 @@ def create_maintenance():
         db.session.rollback()
         return error_response(str(e))
 
+@maintenance_bp.route("/<int:mid>", methods=["PUT"])
+@jwt_required()
+@permission_required("maintenance:write")
+def update_maintenance(mid):
+    try:
+        m = MaintenanceLog.query.get(mid)
+        if not m:
+            return error_response("Maintenance log not found", 404)
+        data = request.get_json()
+        for f in ["device_id","technician_id","maintenance_type","description","scheduled_date",
+                   "completed_date","duration_minutes","outcome","notes","image_url"]:
+            if f in data:
+                setattr(m, f, data[f])
+        db.session.commit()
+        return success_response(m.to_dict(), "Maintenance log updated")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
+@maintenance_bp.route("/<int:mid>", methods=["DELETE"])
+@jwt_required()
+@permission_required("maintenance:delete")
+def delete_maintenance(mid):
+    try:
+        m = MaintenanceLog.query.get(mid)
+        if not m:
+            return error_response("Maintenance log not found", 404)
+        db.session.delete(m)
+        db.session.commit()
+        return success_response(message="Maintenance log deleted")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
 # ═══════════════════════════════ NETWORK LINKS ═══════════════════════════════
 
 network_bp = Blueprint("network", __name__, url_prefix="/api/network-links")
@@ -270,6 +330,8 @@ def create_link():
         data = request.get_json()
         if not data or not data.get("source_device_id") or not data.get("target_device_id"):
             return error_response("source_device_id and target_device_id required", 400)
+        if data["source_device_id"] == data["target_device_id"]:
+            return error_response("Source and target device must be different", 400)
         link = NetworkLink(source_device_id=data["source_device_id"], target_device_id=data["target_device_id"],
                            link_type=data.get("link_type"), bandwidth=data.get("bandwidth"),
                            latency=data.get("latency"), packet_loss=data.get("packet_loss"),
@@ -277,6 +339,39 @@ def create_link():
         db.session.add(link)
         db.session.commit()
         return success_response(link.to_dict(), "Network link created", 201)
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
+@network_bp.route("/<int:lid>", methods=["PUT"])
+@jwt_required()
+@permission_required("network:write")
+def update_link(lid):
+    try:
+        link = NetworkLink.query.get(lid)
+        if not link:
+            return error_response("Network link not found", 404)
+        data = request.get_json()
+        for f in ["source_device_id","target_device_id","link_type","bandwidth","latency","packet_loss","status"]:
+            if f in data:
+                setattr(link, f, data[f])
+        db.session.commit()
+        return success_response(link.to_dict(), "Network link updated")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
+@network_bp.route("/<int:lid>", methods=["DELETE"])
+@jwt_required()
+@permission_required("network:delete")
+def delete_link(lid):
+    try:
+        link = NetworkLink.query.get(lid)
+        if not link:
+            return error_response("Network link not found", 404)
+        db.session.delete(link)
+        db.session.commit()
+        return success_response(message="Network link deleted")
     except Exception as e:
         db.session.rollback()
         return error_response(str(e))
@@ -345,7 +440,8 @@ def create_incident():
             return error_response("title is required", 400)
         inc = Incident(title=data["title"], description=data.get("description"),
                        severity=data.get("severity", "medium"), priority=data.get("priority", 3),
-                       impact=data.get("impact"), reported_by_id=current_user_id())
+                       impact=data.get("impact"), affected_services=data.get("affected_services"),
+                       reported_by_id=current_user_id())
         db.session.add(inc)
         db.session.flush()
         tl = IncidentTimeline(incident_id=inc.id, action="created", description="Incident created",
@@ -370,6 +466,53 @@ def get_incident(iid):
     except Exception as e:
         return error_response(str(e))
 
+@incidents_bp.route("/<int:iid>", methods=["PUT"])
+@jwt_required()
+@permission_required("incidents:write")
+def update_incident(iid):
+    try:
+        inc = Incident.query.filter_by(id=iid, is_deleted=False).first()
+        if not inc:
+            return error_response("Incident not found", 404)
+        data = request.get_json()
+        for f in ["title","description","severity","status","priority","impact",
+                   "affected_services","root_cause","resolution_summary","lessons_learned"]:
+            if f in data:
+                setattr(inc, f, data[f])
+        # Track status transitions
+        if "status" in data:
+            now = datetime.now(timezone.utc)
+            if data["status"] == "acknowledged" and not inc.acknowledged_at:
+                inc.acknowledged_at = now
+            elif data["status"] == "resolved" and not inc.resolved_at:
+                inc.resolved_at = now
+            elif data["status"] == "closed" and not inc.closed_at:
+                inc.closed_at = now
+            tl = IncidentTimeline(incident_id=inc.id, action=f"status_changed_to_{data['status']}",
+                                  description=f"Status changed to {data['status']}",
+                                  performed_by_id=current_user_id())
+            db.session.add(tl)
+        db.session.commit()
+        return success_response(inc.to_dict(), "Incident updated")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
+@incidents_bp.route("/<int:iid>", methods=["DELETE"])
+@jwt_required()
+@permission_required("incidents:delete")
+def delete_incident(iid):
+    try:
+        inc = Incident.query.filter_by(id=iid, is_deleted=False).first()
+        if not inc:
+            return error_response("Incident not found", 404)
+        inc.soft_delete()
+        db.session.commit()
+        return success_response(message="Incident deleted")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
 # ═══════════════════════════════ NOTIFICATIONS ═══════════════════════════════
 
 notifications_bp = Blueprint("notifications", __name__, url_prefix="/api/notifications")
@@ -384,7 +527,6 @@ def get_notifications():
         if unread_only == "true":
             query = query.filter_by(is_read=False)
         items, total, page, per_page = paginate_query(query)
-        unread_count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
         return paginated_response([n.to_dict() for n in items], total, page, per_page)
     except Exception as e:
         return error_response(str(e))
@@ -411,7 +553,7 @@ dropdowns_bp = Blueprint("dropdowns", __name__, url_prefix="/api/dropdowns")
 @jwt_required()
 def dropdown_locations():
     locs = Location.query.filter_by(is_deleted=False).order_by(Location.location_name).all()
-    return success_response([{"id": l.id, "label": l.location_name} for l in locs])
+    return success_response([{"id": l.id, "label": l.location_name, "city": l.city} for l in locs])
 
 @dropdowns_bp.route("/technicians", methods=["GET"])
 @jwt_required()

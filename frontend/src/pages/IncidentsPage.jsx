@@ -1,36 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Flame, Paperclip, Upload, X, Download as DownloadIcon, Loader2 } from 'lucide-react';
+import { Search, Flame, Paperclip, Upload, Loader2, Plus, X, Download as DownloadIcon } from 'lucide-react';
 import { incidentsApi, exportApi, filesApi } from '../api';
+import { extractItems } from '../api/helpers';
 import { DataTable } from '../components/ui/DataTable';
 import { Badge } from '../components/ui/Badge';
 import { DataModal } from '../components/ui/DataModal';
-import { format } from 'date-fns';
+import { Button } from '../components/ui/Button';
+import useToastStore from '../store/toastStore';
 
 export function IncidentsPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState('');
+  
+  // Detail Modal
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [attachments, setAttachments] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Create/Edit Modal
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const fetchData = async () => {
+  const toast = useToastStore;
+
+  const fetchData = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const res = await incidentsApi.getIncidents();
-      if (res.success && res.data) {
-        const items = res.data.items || (Array.isArray(res.data) ? res.data : []);
-        setData(items);
-      }
+      setData(extractItems(res));
     } catch (error) {
       console.error('Failed to fetch incidents', error);
+      toast.error('Failed to load incident data');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
   }, []);
 
   const fetchAttachments = async (incidentId) => {
@@ -63,14 +73,74 @@ export function IncidentsPage() {
       const res = await filesApi.upload(formData);
       if (res.success) {
         setAttachments(prev => [...prev, res.data]);
+        toast.success('Evidence file uploaded');
       }
     } catch (error) {
       console.error('Upload failed', error);
-      alert('Upload failed: ' + (error.response?.data?.error || error.message));
+      toast.error(error.error || 'Upload failed');
     } finally {
       setIsUploading(false);
     }
   };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("CONFIRM DELETION. THIS ACTION IS IRREVERSIBLE.")) return;
+    try {
+      await incidentsApi.deleteIncident(id);
+      setData(prev => prev.filter(i => i.id !== id));
+      toast.success('Incident deleted');
+    } catch (e) {
+      toast.error(e.error || 'Deletion failed');
+    }
+  };
+
+  const handleSave = async (formData) => {
+    setIsSaving(true);
+    try {
+      if (editingRecord) {
+        await incidentsApi.updateIncident(editingRecord.id, formData);
+        toast.success('Incident updated');
+      } else {
+        await incidentsApi.createIncident(formData);
+        toast.success('Incident created');
+      }
+      await fetchData(false);
+      setIsFormOpen(false);
+      setEditingRecord(null);
+    } catch (e) {
+      toast.error(e.error || 'Save failed');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openCreateModal = () => {
+    setEditingRecord(null);
+    setIsFormOpen(true);
+  };
+
+  const openEditModal = (record) => {
+    setEditingRecord(record);
+    setIsFormOpen(true);
+  };
+
+  const modalFields = [
+    { name: 'title', label: 'Incident Designation', required: true },
+    { name: 'description', label: 'Detailed Assessment', type: 'textarea' },
+    { name: 'severity', label: 'Severity Classification', type: 'select', required: true, options: [
+      { value: 'critical', label: 'Critical' },
+      { value: 'high', label: 'High' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'low', label: 'Low' },
+    ]},
+    { name: 'status', label: 'Resolution Status', type: 'select', required: true, options: [
+      { value: 'open', label: 'Open' },
+      { value: 'acknowledged', label: 'Acknowledged' },
+      { value: 'resolved', label: 'Resolved' },
+      { value: 'closed', label: 'Closed' },
+    ]},
+    { name: 'impact', label: 'Blast Radius (Impact)' },
+  ];
 
   const columns = [
     {
@@ -80,9 +150,9 @@ export function IncidentsPage() {
         const date = new Date(info.getValue());
         return (
           <div className="font-mono text-xs text-textMuted">
-            <span className="text-primary">{format(date, 'yyyy-MM-dd')}</span>
+            <span className="text-primary">{date.toLocaleDateString()}</span>
             <br />
-            {format(date, 'HH:mm:ss')}
+            {date.toLocaleTimeString()}
           </div>
         );
       },
@@ -93,12 +163,12 @@ export function IncidentsPage() {
       cell: (info) => {
         const inc = info.row.original;
         return (
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setSelectedIncident(inc)}>
-            <div className={`w-8 h-8 rounded bg-surfaceHighlight border flex items-center justify-center ${inc.severity === 'critical' ? 'border-error text-error' : 'border-warning text-warning'}`}>
+          <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => setSelectedIncident(inc)}>
+            <div className={`w-8 h-8 rounded bg-surfaceHighlight border flex items-center justify-center transition-colors group-hover:bg-surfaceHighlight/80 ${inc.severity === 'critical' ? 'border-error text-error group-hover:border-error/80' : 'border-warning text-warning group-hover:border-warning/80'}`}>
               <Flame size={16} />
             </div>
             <div>
-              <p className="font-bold text-textMain hover:text-primary transition-colors">{inc.title}</p>
+              <p className="font-bold text-textMain group-hover:text-primary transition-colors">{inc.title}</p>
               <p className="text-xs text-textMuted max-w-[250px] truncate">{inc.description}</p>
             </div>
           </div>
@@ -116,18 +186,18 @@ export function IncidentsPage() {
             severity === 'high' ? 'warning' : 
             severity === 'medium' ? 'info' : 'default'
           }>
-            {severity.toUpperCase()}
+            {severity?.toUpperCase()}
           </Badge>
         );
       },
     },
     {
       accessorKey: 'status',
-      header: 'Resolution Status',
+      header: 'Status',
       cell: (info) => {
         const status = info.getValue();
         return (
-          <span className={`font-mono text-xs uppercase tracking-widest ${status === 'resolved' ? 'text-success' : status === 'open' ? 'text-error' : 'text-primary'}`}>
+          <span className={`font-mono text-xs uppercase tracking-widest ${status === 'resolved' || status === 'closed' ? 'text-success' : status === 'open' ? 'text-error' : 'text-primary'}`}>
             {status.replace('_', ' ')}
           </span>
         );
@@ -153,17 +223,23 @@ export function IncidentsPage() {
           <p className="text-textMuted mt-1 font-mono text-sm uppercase">Major Outages & Investigations</p>
         </div>
         
-        <div className="relative w-full md:w-72">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-error">
-            <Search size={18} />
+        <div className="flex items-center space-x-4 w-full md:w-auto">
+          <div className="relative w-full md:w-72">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-error">
+              <Search size={18} />
+            </div>
+            <input
+              type="text"
+              value={globalFilter ?? ''}
+              onChange={e => setGlobalFilter(e.target.value)}
+              className="w-full bg-surface/50 backdrop-blur-md border border-error/30 rounded-lg py-2 pl-10 pr-4 text-textMain focus:outline-none focus:border-error focus:ring-1 focus:ring-error shadow-[0_0_15px_rgba(255,0,60,0.1)] transition-all placeholder-textMuted/50 font-mono text-sm"
+              placeholder="Search incident logs..."
+            />
           </div>
-          <input
-            type="text"
-            value={globalFilter ?? ''}
-            onChange={e => setGlobalFilter(e.target.value)}
-            className="w-full bg-surface/50 backdrop-blur-md border border-error/30 rounded-lg py-2 pl-10 pr-4 text-textMain focus:outline-none focus:border-error focus:ring-1 focus:ring-error shadow-[0_0_15px_rgba(255,0,60,0.1)] transition-all placeholder-textMuted/50 font-mono text-sm"
-            placeholder="Search incident logs..."
-          />
+          <Button variant="danger" onClick={openCreateModal} className="shrink-0 flex items-center shadow-[0_0_10px_rgba(255,0,60,0.4)]">
+            <Plus size={18} className="mr-2" />
+            DECLARE INCIDENT
+          </Button>
         </div>
       </div>
 
@@ -175,10 +251,12 @@ export function IncidentsPage() {
           globalFilter={globalFilter} 
           setGlobalFilter={setGlobalFilter} 
           onExport={(format) => exportApi.exportIncidents(format)}
-          onEdit={(inc) => setSelectedIncident(inc)}
+          onEdit={openEditModal}
+          onDelete={handleDelete}
         />
       </div>
 
+      {/* Detail Modal */}
       {selectedIncident && (
         <DataModal 
           isOpen={!!selectedIncident} 
@@ -189,11 +267,15 @@ export function IncidentsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-textMuted uppercase font-mono mb-1">Status</p>
-                <Badge variant={selectedIncident.status === 'resolved' ? 'success' : 'error'}>{selectedIncident.status.toUpperCase()}</Badge>
+                <Badge variant={selectedIncident.status === 'resolved' || selectedIncident.status === 'closed' ? 'success' : 'error'}>
+                  {selectedIncident.status.toUpperCase()}
+                </Badge>
               </div>
               <div>
                 <p className="text-xs text-textMuted uppercase font-mono mb-1">Severity</p>
-                <Badge variant={selectedIncident.severity === 'critical' ? 'error' : 'warning'}>{selectedIncident.severity.toUpperCase()}</Badge>
+                <Badge variant={selectedIncident.severity === 'critical' ? 'error' : 'warning'}>
+                  {selectedIncident.severity.toUpperCase()}
+                </Badge>
               </div>
             </div>
 
@@ -224,7 +306,7 @@ export function IncidentsPage() {
                         <span className="text-[10px] text-textMuted">({(file.file_size / 1024).toFixed(1)} KB)</span>
                       </div>
                       <button 
-                        onClick={() => filesApi.downloadAttachment(file.id, file.original_filename)} 
+                        onClick={(e) => { e.preventDefault(); filesApi.downloadAttachment(file.id, file.original_filename); }} 
                         className="p-1.5 text-textMuted hover:text-primary transition-colors"
                         title="Download Evidence"
                       >
@@ -234,24 +316,33 @@ export function IncidentsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-textMuted space-y-2 hover:border-primary/50 transition-colors cursor-pointer" onClick={() => document.querySelector('input[type="file"]').click()}>
+                <label className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center text-textMuted space-y-2 hover:border-primary/50 transition-colors cursor-pointer">
                   <Paperclip size={24} />
-                  <p className="text-xs font-mono">Drag evidence files here or click to scan...</p>
-                </div>
+                  <p className="text-xs font-mono">Click to scan evidence files...</p>
+                  <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+                </label>
               )}
             </div>
 
-            <div className="flex justify-end">
-              <button 
-                onClick={() => setSelectedIncident(null)}
-                className="px-4 py-2 bg-surfaceHighlight border border-border rounded text-xs font-mono hover:bg-border transition-colors"
-              >
+            <div className="flex justify-end space-x-3 pt-4 border-t border-border">
+              <Button variant="ghost" onClick={() => setSelectedIncident(null)}>
                 CLOSE TERMINAL
-              </button>
+              </Button>
             </div>
           </div>
         </DataModal>
       )}
+
+      {/* Create/Edit Form Modal */}
+      <DataModal 
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSave={handleSave}
+        title={editingRecord ? "MODIFY INCIDENT LOG" : "DECLARE NEW INCIDENT"}
+        fields={modalFields}
+        initialData={editingRecord}
+        isSaving={isSaving}
+      />
     </motion.div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MainLayout } from './components/layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -13,8 +13,10 @@ import { IncidentsPage } from './pages/IncidentsPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { TopologyPage } from './pages/TopologyPage';
+import { ToastContainer } from './components/ui/Toast';
 import useThemeStore from './store/themeStore';
 import useSocketStore from './store/socketStore';
+import useAuthStore from './store/authStore';
 
 const pageVariants = {
   initial: { opacity: 0, y: 10, scale: 0.99 },
@@ -43,6 +45,15 @@ function AnimatedPage({ children }) {
   );
 }
 
+// Auth guard — redirects to login if not authenticated
+function ProtectedRoute({ children }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   return (
@@ -50,7 +61,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<LoginPage />} />
         
-        <Route element={<MainLayout />}>
+        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<AnimatedPage><DashboardPage /></AnimatedPage>} />
           <Route path="/devices" element={<AnimatedPage><DevicesPage /></AnimatedPage>} />
           <Route path="/alerts" element={<AnimatedPage><AlertsPage /></AnimatedPage>} />
@@ -62,6 +73,9 @@ function AnimatedRoutes() {
           <Route path="/audit-logs" element={<AnimatedPage><AuditLogPage /></AnimatedPage>} />
           <Route path="/topology" element={<AnimatedPage><TopologyPage /></AnimatedPage>} />
         </Route>
+
+        {/* Catch-all redirect */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );
@@ -72,10 +86,7 @@ function App() {
   const connectSocket = useSocketStore((s) => s.connect);
 
   useEffect(() => {
-    // Initialize theme from localStorage
     initTheme();
-
-    // Connect WebSocket for real-time updates
     const token = localStorage.getItem('accessToken');
     if (token) {
       connectSocket();
@@ -85,6 +96,7 @@ function App() {
   return (
     <BrowserRouter>
       <AnimatedRoutes />
+      <ToastContainer />
     </BrowserRouter>
   );
 }

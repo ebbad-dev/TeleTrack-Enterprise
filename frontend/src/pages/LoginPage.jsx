@@ -46,7 +46,7 @@ const Particles = () => {
 
 export function LoginPage() {
   const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('TeleTrack@2026');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [terminalText, setTerminalText] = useState('AWAITING CREDENTIALS...');
@@ -138,7 +138,7 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 bg-surface/50 border border-border rounded text-textMain focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm py-3 transition-all placeholder-textMuted/50 font-mono neon-border hover:border-primary/50"
-                  placeholder="SECURITY KEY"
+                  placeholder="Default: admin123"
                   disabled={isScanning}
                 />
               </div>

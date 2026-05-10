@@ -1,40 +1,40 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus } from 'lucide-react';
-import { devicesApi, locationsApi, exportApi } from '../api';
+import { devicesApi, exportApi, dropdownsApi } from '../api';
+import { extractItems } from '../api/helpers';
 import { DataTable } from '../components/ui/DataTable';
 import { Badge } from '../components/ui/Badge';
 import { DataModal } from '../components/ui/DataModal';
 import { Button } from '../components/ui/Button';
+import useToastStore from '../store/toastStore';
 
 export function DevicesPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState('');
   const [locations, setLocations] = useState([]);
+  const [vendors, setVendors] = useState([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const toast = useToastStore;
 
   const fetchData = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      const [devRes, locRes] = await Promise.all([
+      const [devRes, locRes, venRes] = await Promise.all([
         devicesApi.getDevices(),
-        locationsApi.getLocations()
+        dropdownsApi.getLocations(),
+        dropdownsApi.getVendors()
       ]);
-      if (devRes.success) {
-        // Handle paginated or direct array response
-        const devItems = devRes.data.items || (Array.isArray(devRes.data) ? devRes.data : []);
-        setData(devItems);
-      }
-      if (locRes.success) {
-        const locItems = locRes.data.items || (Array.isArray(locRes.data) ? locRes.data : []);
-        setLocations(locItems);
-      }
+      setData(extractItems(devRes));
+      if (locRes.success) setLocations(locRes.data || []);
+      if (venRes.success) setVendors(venRes.data || []);
     } catch (error) {
       console.error('Failed to fetch data', error);
+      toast.error('Failed to load device data');
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export function DevicesPage() {
 
   useEffect(() => {
     fetchData(true);
-    const interval = setInterval(() => fetchData(false), 10000);
+    const interval = setInterval(() => fetchData(false), 15000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -51,32 +51,35 @@ export function DevicesPage() {
     try {
       await devicesApi.deleteDevice(id);
       setData(prev => prev.filter(d => d.id !== id));
+      toast.success('Device deleted successfully');
     } catch (e) {
       console.error(e);
-      alert("Deletion failed.");
+      toast.error(e.error || 'Deletion failed');
     }
   };
 
   const handleSave = async (formData) => {
     setIsSaving(true);
     try {
-      // Ensure numeric ID
       const payload = {
         ...formData,
-        location_id: parseInt(formData.location_id)
+        location_id: parseInt(formData.location_id),
+        vendor_id: formData.vendor_id ? parseInt(formData.vendor_id) : null,
       };
 
       if (editingRecord) {
         await devicesApi.updateDevice(editingRecord.id, payload);
+        toast.success('Device updated successfully');
       } else {
         await devicesApi.createDevice(payload);
+        toast.success('Device created successfully');
       }
       await fetchData(false);
       setIsModalOpen(false);
       setEditingRecord(null);
     } catch (e) {
       console.error(e);
-      alert(e.error || "Save failed.");
+      toast.error(e.error || 'Save failed');
     } finally {
       setIsSaving(false);
     }
@@ -99,13 +102,19 @@ export function DevicesPage() {
       { value: 'Switch', label: 'Switch' },
       { value: 'Server', label: 'Server' },
       { value: 'Firewall', label: 'Firewall' },
+      { value: 'Access Point', label: 'Access Point' },
       { value: 'Storage', label: 'Storage' }
     ]},
     { name: 'ip_address', label: 'IP Address', required: true },
+    { name: 'mac_address', label: 'MAC Address' },
+    { name: 'model', label: 'Model' },
+    { name: 'serial_number', label: 'Serial Number' },
+    { name: 'firmware_version', label: 'Firmware Version' },
     { name: 'status', label: 'Operational Status', type: 'select', required: true, options: [
       { value: 'online', label: 'Online' },
       { value: 'offline', label: 'Offline' },
-      { value: 'warning', label: 'Warning' }
+      { value: 'degraded', label: 'Degraded' },
+      { value: 'maintenance', label: 'Maintenance' }
     ]},
     { 
       name: 'location_id', 
@@ -114,7 +123,16 @@ export function DevicesPage() {
       required: true, 
       options: locations.map(l => ({ 
         value: l.id, 
-        label: l.location_name ? `${l.location_name} (${l.city || ''})` : l.label 
+        label: l.city ? `${l.label} (${l.city})` : l.label
+      }))
+    },
+    { 
+      name: 'vendor_id', 
+      label: 'Vendor', 
+      type: 'select', 
+      options: vendors.map(v => ({ 
+        value: v.id, 
+        label: v.label 
       }))
     },
   ];
@@ -151,7 +169,7 @@ export function DevicesPage() {
         const status = info.getValue();
         return (
           <Badge variant={status === 'online' ? 'success' : status === 'offline' ? 'error' : 'warning'}>
-            {status.toUpperCase()}
+            {status?.toUpperCase()}
           </Badge>
         );
       },
@@ -203,8 +221,8 @@ export function DevicesPage() {
                 const subnet = window.prompt("ENTER TARGET SUBNET (CIDR):", "192.168.1.0/24");
                 if (subnet) {
                   devicesApi.discover({ subnet }).then(res => {
-                    if (res.success) alert("SCAN INITIALIZED. CHECK NOTIFICATIONS FOR RESULTS.");
-                  });
+                    if (res.success) toast.info('Network scan initiated. Check notifications for results.');
+                  }).catch(() => toast.warning('Scan service unavailable'));
                 }
               }} 
               className="shrink-0 flex items-center border border-primary/30 hover:border-primary/60 text-primary/80"

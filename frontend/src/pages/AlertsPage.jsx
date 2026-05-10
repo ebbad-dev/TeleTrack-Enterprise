@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ShieldAlert, Plus } from 'lucide-react';
-import { alertsApi, devicesApi, exportApi } from '../api';
+import { alertsApi, exportApi, dropdownsApi } from '../api';
+import { extractItems } from '../api/helpers';
 import { DataTable } from '../components/ui/DataTable';
 import { Badge } from '../components/ui/Badge';
 import { DataModal } from '../components/ui/DataModal';
 import { Button } from '../components/ui/Button';
+import useToastStore from '../store/toastStore';
 
 export function AlertsPage() {
   const [data, setData] = useState([]);
@@ -16,24 +18,20 @@ export function AlertsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const toast = useToastStore;
 
   const fetchData = useCallback(async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
       const [alertRes, devRes] = await Promise.all([
         alertsApi.getAlerts(),
-        devicesApi.getDevices()
+        dropdownsApi.getDevices()
       ]);
-      if (alertRes.success) {
-        const alertItems = alertRes.data.items || (Array.isArray(alertRes.data) ? alertRes.data : []);
-        setData(alertItems);
-      }
-      if (devRes.success) {
-        const devItems = devRes.data.items || (Array.isArray(devRes.data) ? devRes.data : []);
-        setDevices(devItems);
-      }
+      setData(extractItems(alertRes));
+      if (devRes.success) setDevices(devRes.data || []);
     } catch (error) {
       console.error('Failed to fetch alerts', error);
+      toast.error('Failed to load alert data');
     } finally {
       setLoading(false);
     }
@@ -50,9 +48,10 @@ export function AlertsPage() {
     try {
       await alertsApi.deleteAlert(id);
       setData(prev => prev.filter(a => a.id !== id));
+      toast.success('Alert deleted');
     } catch (e) {
       console.error(e);
-      alert("Deletion failed.");
+      toast.error(e.error || 'Deletion failed');
     }
   };
 
@@ -66,15 +65,17 @@ export function AlertsPage() {
 
       if (editingRecord) {
         await alertsApi.updateAlert(editingRecord.id, payload);
+        toast.success('Alert updated');
       } else {
         await alertsApi.createAlert(payload);
+        toast.success('Alert created');
       }
       await fetchData(false);
       setIsModalOpen(false);
       setEditingRecord(null);
     } catch (e) {
       console.error(e);
-      alert("Save failed.");
+      toast.error(e.error || 'Save failed');
     } finally {
       setIsSaving(false);
     }
@@ -98,9 +99,10 @@ export function AlertsPage() {
       required: true, 
       options: devices.map(d => ({ 
         value: d.id, 
-        label: d.device_name ? `${d.device_name} (${d.ip_address || ''})` : d.label 
+        label: d.label 
       }))
     },
+    { name: 'alert_type', label: 'Alert Type', required: true },
     { name: 'message', label: 'Alert Message', type: 'textarea', required: true },
     { name: 'severity', label: 'Severity Level', type: 'select', required: true, options: [
       { value: 'critical', label: 'Critical' },
@@ -111,6 +113,7 @@ export function AlertsPage() {
     { name: 'status', label: 'Resolution Status', type: 'select', required: true, options: [
       { value: 'open', label: 'Open' },
       { value: 'acknowledged', label: 'Acknowledged' },
+      { value: 'assigned', label: 'Assigned' },
       { value: 'resolved', label: 'Resolved' },
     ]},
   ];
@@ -127,7 +130,7 @@ export function AlertsPage() {
             severity === 'high' ? 'warning' : 
             severity === 'medium' ? 'info' : 'default'
           }>
-            {severity.toUpperCase()}
+            {severity?.toUpperCase()}
           </Badge>
         );
       },
@@ -139,8 +142,11 @@ export function AlertsPage() {
         const alert = info.row.original;
         return (
           <div className="flex flex-col">
-            <span className="font-bold text-textMain">{alert.message}</span>
-            <span className="text-xs text-textMuted font-mono mt-1">DEVICE: {alert.device ? alert.device.device_name : `ID-${alert.device_id}`}</span>
+            <span className="font-bold text-textMain">{alert.alert_type || 'Alert'}</span>
+            <span className="text-xs text-textMuted mt-0.5 max-w-[300px] truncate">{alert.message}</span>
+            <span className="text-xs text-textMuted font-mono mt-1">
+              DEVICE: {alert.device_name || `ID-${alert.device_id}`}
+            </span>
           </div>
         );
       },
@@ -158,9 +164,12 @@ export function AlertsPage() {
       },
     },
     {
-      accessorKey: 'created_at',
+      accessorKey: 'alert_time',
       header: 'Timestamp',
-      cell: (info) => <span className="font-mono text-xs text-textMuted">{new Date(info.getValue()).toLocaleString()}</span>,
+      cell: (info) => {
+        const val = info.getValue() || info.row.original.created_at;
+        return <span className="font-mono text-xs text-textMuted">{val ? new Date(val).toLocaleString() : '—'}</span>;
+      },
     },
   ];
 

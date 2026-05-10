@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Settings, Command, LogOut, User, Sun, Moon } from 'lucide-react';
+import { Search, Bell, Settings, Command, LogOut, User, Sun, Moon, Menu } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { notificationsApi, searchApi } from '../../api';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
 import { format } from 'date-fns';
 
-export function Topbar() {
+export function Topbar({ toggleSidebar }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
@@ -94,14 +94,23 @@ export function Topbar() {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-surface/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-50 transition-colors duration-300">
+    <header className="h-16 border-b border-border bg-surface/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 sticky top-0 z-50 transition-colors duration-300">
       
-      {/* Global Search Bar */}
-      <div className="flex-1 max-w-xl" ref={searchRef}>
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-textMuted group-focus-within:text-primary transition-colors">
-            <Search size={18} />
-          </div>
+      <div className="flex items-center flex-1">
+        {/* Mobile Sidebar Toggle */}
+        <button 
+          onClick={toggleSidebar}
+          className="md:hidden mr-3 p-2 text-textMuted hover:text-primary transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Global Search Bar */}
+        <div className="flex-1 max-w-xl" ref={searchRef}>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-textMuted group-focus-within:text-primary transition-colors">
+              <Search size={18} />
+            </div>
           <input
             type="text"
             value={searchQuery}
@@ -157,6 +166,7 @@ export function Topbar() {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Right Actions */}

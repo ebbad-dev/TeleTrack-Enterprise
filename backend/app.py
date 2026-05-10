@@ -49,6 +49,10 @@ def create_app(config_class=None, config_overrides=None):
         config_class = get_config()
     app.config.from_object(config_class)
 
+    # Apply dynamic engine options (SQLite vs PostgreSQL)
+    from config import BaseConfig
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = BaseConfig.init_engine_options()
+
     # Apply overrides if provided
     if config_overrides:
         app.config.update(config_overrides)

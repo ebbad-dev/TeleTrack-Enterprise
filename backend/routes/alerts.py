@@ -177,3 +177,42 @@ def add_comment(alert_id):
     except Exception as e:
         db.session.rollback()
         return error_response(str(e))
+
+
+@alerts_bp.route("/<int:alert_id>", methods=["PUT"])
+@jwt_required()
+@permission_required("alerts:write")
+def update_alert(alert_id):
+    """Update an existing alert."""
+    try:
+        alert = Alert.query.filter_by(id=alert_id, is_deleted=False).first()
+        if not alert:
+            return error_response("Alert not found", 404)
+        data = request.get_json()
+        for f in ["alert_type", "severity", "message", "status", "priority"]:
+            if f in data:
+                setattr(alert, f, data[f])
+        if "device_id" in data:
+            alert.device_id = int(data["device_id"])
+        db.session.commit()
+        return success_response(alert.to_dict(), "Alert updated")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
+
+
+@alerts_bp.route("/<int:alert_id>", methods=["DELETE"])
+@jwt_required()
+@permission_required("alerts:delete")
+def delete_alert(alert_id):
+    """Soft-delete an alert."""
+    try:
+        alert = Alert.query.filter_by(id=alert_id, is_deleted=False).first()
+        if not alert:
+            return error_response("Alert not found", 404)
+        alert.soft_delete()
+        db.session.commit()
+        return success_response(message="Alert deleted")
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e))
