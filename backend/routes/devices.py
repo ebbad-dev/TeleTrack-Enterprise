@@ -185,6 +185,7 @@ def update_device(device_id):
         # Update allowed fields
         allowed = [
             "device_name", "device_type", "vendor_id", "model", "serial_number",
+            "ip_address", "mac_address", "location_id", "status",
             "firmware_version", "image_url", "notes", "snmp_community",
             "snmp_version", "snmp_port", "monitoring_enabled", "ping_interval",
         ]

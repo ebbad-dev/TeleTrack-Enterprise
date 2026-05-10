@@ -24,8 +24,15 @@ export function DevicesPage() {
         devicesApi.getDevices(),
         locationsApi.getLocations()
       ]);
-      if (devRes.success) setData(devRes.data);
-      if (locRes.success) setLocations(locRes.data);
+      if (devRes.success) {
+        // Handle paginated or direct array response
+        const devItems = devRes.data.items || (Array.isArray(devRes.data) ? devRes.data : []);
+        setData(devItems);
+      }
+      if (locRes.success) {
+        const locItems = locRes.data.items || (Array.isArray(locRes.data) ? locRes.data : []);
+        setLocations(locItems);
+      }
     } catch (error) {
       console.error('Failed to fetch data', error);
     } finally {
@@ -105,7 +112,10 @@ export function DevicesPage() {
       label: 'Site Location', 
       type: 'select', 
       required: true, 
-      options: locations.map(l => ({ value: l.id, label: `${l.location_name} (${l.city})` }))
+      options: locations.map(l => ({ 
+        value: l.id, 
+        label: l.location_name ? `${l.location_name} (${l.city || ''})` : l.label 
+      }))
     },
   ];
 

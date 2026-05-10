@@ -13,7 +13,10 @@ export function VendorsPage() {
     const fetchData = async () => {
       try {
         const res = await vendorsApi.getVendors();
-        if (res.success && res.data) setData(res.data);
+        if (res.success && res.data) {
+          const items = res.data.items || (Array.isArray(res.data) ? res.data : []);
+          setData(items);
+        }
       } catch (error) {
         console.error('Failed to fetch vendors', error);
       } finally {

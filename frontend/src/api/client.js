@@ -28,6 +28,10 @@ apiClient.interceptors.response.use(
     
     // If error is 401 and we haven't already retried
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't refresh on login route
+      if (originalRequest.url.includes('/auth/login')) {
+        return Promise.reject(error.response?.data || error);
+      }
       originalRequest._retry = true;
       
       try {

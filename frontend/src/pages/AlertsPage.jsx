@@ -24,8 +24,14 @@ export function AlertsPage() {
         alertsApi.getAlerts(),
         devicesApi.getDevices()
       ]);
-      if (alertRes.success) setData(alertRes.data);
-      if (devRes.success) setDevices(devRes.data);
+      if (alertRes.success) {
+        const alertItems = alertRes.data.items || (Array.isArray(alertRes.data) ? alertRes.data : []);
+        setData(alertItems);
+      }
+      if (devRes.success) {
+        const devItems = devRes.data.items || (Array.isArray(devRes.data) ? devRes.data : []);
+        setDevices(devItems);
+      }
     } catch (error) {
       console.error('Failed to fetch alerts', error);
     } finally {
@@ -90,7 +96,10 @@ export function AlertsPage() {
       label: 'Target Device', 
       type: 'select', 
       required: true, 
-      options: devices.map(d => ({ value: d.id, label: `${d.device_name} (${d.ip_address})` }))
+      options: devices.map(d => ({ 
+        value: d.id, 
+        label: d.device_name ? `${d.device_name} (${d.ip_address || ''})` : d.label 
+      }))
     },
     { name: 'message', label: 'Alert Message', type: 'textarea', required: true },
     { name: 'severity', label: 'Severity Level', type: 'select', required: true, options: [

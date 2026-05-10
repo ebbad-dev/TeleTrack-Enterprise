@@ -20,7 +20,10 @@ export function LocationsPage() {
     if (showLoading) setLoading(true);
     try {
       const res = await locationsApi.getLocations();
-      if (res.success && res.data) setData(res.data);
+      if (res.success && res.data) {
+        const items = res.data.items || (Array.isArray(res.data) ? res.data : []);
+        setData(items);
+      }
     } catch (error) {
       console.error('Failed to fetch locations', error);
     } finally {

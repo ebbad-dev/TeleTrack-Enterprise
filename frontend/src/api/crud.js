@@ -47,3 +47,11 @@ export const notificationsApi = {
 export const searchApi = {
   globalSearch: (query) => apiClient.get('/search', { params: { q: query } }),
 };
+
+export const dropdownsApi = {
+  getLocations: () => apiClient.get('/dropdowns/locations'),
+  getTechnicians: () => apiClient.get('/dropdowns/technicians'),
+  getVendors: () => apiClient.get('/dropdowns/vendors'),
+  getDevices: () => apiClient.get('/dropdowns/devices'),
+  getSLAPolicies: () => apiClient.get('/dropdowns/sla-policies'),
+};
