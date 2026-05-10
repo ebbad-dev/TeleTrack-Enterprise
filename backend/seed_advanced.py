@@ -10,10 +10,10 @@ def seed_advanced(app):
     with app.app_context():
         from werkzeug.security import generate_password_hash
         # 1. Ensure at least one User exists
-        from werkzeug.security import generate_password_hash
+        from auth.utils import hash_password
         admin_user = User.query.filter_by(username="admin").first()
         if not admin_user:
-            from models import Role
+            from models.user import Role
             admin_role = Role.query.filter_by(name='admin').first()
             admin_user = User(
                 username="admin", 
@@ -25,9 +25,9 @@ def seed_advanced(app):
                 admin_user.roles.append(admin_role)
             db.session.add(admin_user)
         
-        admin_user.password_hash = generate_password_hash("admin123")
+        admin_user.password_hash = hash_password("admin123")
         db.session.commit()
-        print("Admin user verified/updated with password: admin123")
+        print("Admin user verified/updated with BCRYPT password: admin123")
 
         user_id = admin_user.id
 
