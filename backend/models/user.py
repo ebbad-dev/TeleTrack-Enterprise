@@ -42,6 +42,9 @@ class Permission(db.Model):
     resource = db.Column(db.String(50), nullable=False)  # e.g. 'devices'
     action = db.Column(db.String(50), nullable=False)  # e.g. 'read'
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Permission {self.name}>"
 
@@ -72,6 +75,9 @@ class Role(db.Model):
     permissions = db.relationship(
         "Permission", secondary=role_permissions, backref="roles", lazy="joined"
     )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return f"<Role {self.name}>"

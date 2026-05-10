@@ -419,6 +419,9 @@ class Department(TimestampMixin, db.Model):
     head = db.relationship("User", foreign_keys=[head_user_id])
     teams = db.relationship("Team", backref="department", lazy="dynamic")
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -441,6 +444,9 @@ class Team(TimestampMixin, db.Model):
     lead_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     lead = db.relationship("User", foreign_keys=[lead_user_id])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {
