@@ -93,7 +93,7 @@ def admin_required(fn):
         if not user or not user.is_active:
             return jsonify({"success": False, "error": "Account inactive"}), 403
 
-        if not (user.has_role("super_admin") or user.has_role("network_admin")):
+        if not (user.has_role("super_admin") or user.has_role("network_admin") or user.has_role("admin")):
             return jsonify({"success": False, "error": "Admin access required"}), 403
 
         return fn(*args, **kwargs)

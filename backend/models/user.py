@@ -150,6 +150,10 @@ class User(TimestampMixin, SoftDeleteMixin, db.Model):
         return any(r.name == role_name for r in self.roles)
 
     def has_permission(self, permission_name):
+        # Admin bypass
+        if self.has_role("admin") or self.has_role("super_admin"):
+            return True
+            
         return any(
             r.has_permission(permission_name)
             for r in self.roles
