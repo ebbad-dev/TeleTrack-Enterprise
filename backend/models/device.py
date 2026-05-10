@@ -63,6 +63,9 @@ class Device(TimestampMixin, SoftDeleteMixin, AuditMixin, db.Model):
         "DeviceMetric", backref="device", lazy="dynamic", cascade="all, delete-orphan"
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Device {self.device_name} ({self.ip_address})>"
 
@@ -119,6 +122,9 @@ class DeviceStatusHistory(db.Model):
     # Relationships
     changed_by = db.relationship("User", foreign_keys=[changed_by_id])
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -155,6 +161,9 @@ class DeviceMetric(db.Model):
     __table_args__ = (
         db.Index("idx_metric_device_type_time", "device_id", "metric_type", "timestamp"),
     )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {

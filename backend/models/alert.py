@@ -62,6 +62,9 @@ class Alert(TimestampMixin, SoftDeleteMixin, db.Model):
         order_by="AlertComment.commented_at.desc()",
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Alert #{self.id} [{self.severity}] {self.alert_type}>"
 

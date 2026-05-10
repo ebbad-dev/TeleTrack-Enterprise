@@ -70,12 +70,12 @@ export function DashboardPage() {
   }
 
   const stats = [
-    { label: 'Network Health', value: `${summary?.network_health || 0}%`, icon: Activity, color: 'text-success', bg: 'bg-success/10', border: 'border-success/30' },
-    { label: 'Online Nodes', value: summary?.online_devices || 0, icon: Server, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
-    { label: 'Active Threats', value: summary?.open_alerts || 0, icon: AlertTriangle, color: 'text-error', bg: 'bg-error/10', border: 'border-error/30' },
-    { label: 'Open Incidents', value: summary?.open_incidents || 0, icon: Flame, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/30' },
-    { label: 'SLA Compliance', value: `${summary?.sla_compliance || 100}%`, icon: Shield, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' },
-    { label: 'Available Techs', value: summary?.available_technicians || 0, icon: Users, color: 'text-success', bg: 'bg-success/10', border: 'border-success/30' },
+    { label: 'Network Health', value: `${summary?.network_health || 0}%`, icon: Activity, color: 'text-success', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.2)]', bg: 'bg-success/5' },
+    { label: 'Online Nodes', value: summary?.online_devices || 0, icon: Server, color: 'text-primary', glow: 'shadow-[0_0_20px_rgba(0,240,255,0.2)]', bg: 'bg-primary/5' },
+    { label: 'Active Threats', value: summary?.open_alerts || 0, icon: AlertTriangle, color: 'text-error', glow: 'shadow-[0_0_20px_rgba(255,0,60,0.2)]', bg: 'bg-error/5' },
+    { label: 'Open Incidents', value: summary?.open_incidents || 0, icon: Flame, color: 'text-warning', glow: 'shadow-[0_0_20px_rgba(255,179,0,0.2)]', bg: 'bg-warning/5' },
+    { label: 'SLA Compliance', value: `${summary?.sla_compliance || 100}%`, icon: Shield, color: 'text-primary', glow: 'shadow-[0_0_20px_rgba(0,240,255,0.2)]', bg: 'bg-primary/5' },
+    { label: 'Operatives', value: summary?.available_technicians || 0, icon: Users, color: 'text-success', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.2)]', bg: 'bg-success/5' },
   ];
 
   const containerVariants = {
@@ -93,54 +93,64 @@ export function DashboardPage() {
 
   return (
     <motion.div 
-      className="space-y-6"
+      className="space-y-8"
       variants={containerVariants}
       initial="hidden"
       animate="show"
     >
-      <motion.div variants={itemVariants}>
-        <h1 className="text-3xl font-bold text-textMain tracking-wide">COMMAND <span className="text-primary neon-text">CENTER</span></h1>
-        <p className="text-textMuted mt-1 font-mono text-sm uppercase">Global Infrastructure Overview</p>
+      <motion.div variants={itemVariants} className="flex items-end justify-between">
+        <div>
+          <h1 className="text-4xl font-black text-textMain tracking-tighter uppercase italic">COMMAND <span className="text-primary neon-text">CENTER</span></h1>
+          <p className="text-textMuted mt-1 font-mono text-xs uppercase tracking-widest flex items-center">
+            <span className="w-2 h-2 bg-success rounded-full mr-2 animate-pulse" />
+            Global Infrastructure Stream // Operational
+          </p>
+        </div>
+        <div className="hidden md:block text-right font-mono text-[10px] text-textMuted uppercase">
+          Latency: 12ms // Protocol: gRPC-v2<br/>
+          Region: Global-Alpha-1
+        </div>
       </motion.div>
 
       {/* Stats Row — 6 cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
         {stats.map((stat, i) => (
-          <Card key={i} className={`relative overflow-hidden ${stat.border} hover:shadow-[0_0_20px_rgba(0,240,255,0.15)] transition-all duration-300 group`}>
-            <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-2xl ${stat.bg} pointer-events-none transition-transform duration-500 group-hover:scale-150`} />
-            <div className="flex items-center space-x-3 relative z-10">
-              <div className={`p-2.5 rounded-lg ${stat.bg} ${stat.border} border group-hover:bg-transparent transition-colors`}>
-                <stat.icon size={20} className={stat.color} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-textMuted uppercase tracking-widest">{stat.label}</p>
-                <p className={`text-2xl font-bold ${stat.color} mt-0.5 drop-shadow-md`}>{stat.value}</p>
-              </div>
+          <Card key={i} className={`relative group p-5 flex flex-col items-center justify-center text-center space-y-3 backdrop-blur-xl border-border/50 hover:border-primary/50 transition-all duration-500 ${stat.glow} hover:translate-y-[-4px]`}>
+            <div className={`p-3 rounded-2xl ${stat.bg} border border-white/5 group-hover:scale-110 transition-transform duration-500`}>
+              <stat.icon size={28} className={stat.color} />
+            </div>
+            <div>
+              <p className={`text-3xl font-black ${stat.color} tracking-tight`}>{stat.value}</p>
+              <p className="text-[10px] font-bold text-textMuted uppercase tracking-widest mt-1">{stat.label}</p>
+            </div>
+            {/* Animated corner decorations */}
+            <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none">
+              <div className="absolute top-2 right-2 w-1 h-1 bg-white/20 rounded-full" />
             </div>
           </Card>
         ))}
       </motion.div>
 
       {/* Network Map + Recent Alerts */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <motion.div variants={itemVariants} className="xl:col-span-2 h-[500px]">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <motion.div variants={itemVariants} className="xl:col-span-2 h-[550px]">
           <NetworkMap3D devices={devices} links={links} />
         </motion.div>
         
-        <motion.div variants={itemVariants} className="h-[500px]">
+        <motion.div variants={itemVariants} className="h-[550px]">
           <RecentAlertsFeed alerts={alerts} />
         </motion.div>
       </div>
 
       {/* Analytics Row — Alert Trend + Incident Breakdown + SLA Gauge */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-2 min-h-[300px]">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-2 min-h-[350px]">
           <AlertTrendChart />
         </div>
-        <div className="min-h-[300px]">
+        <div className="min-h-[350px]">
           <IncidentBreakdown />
         </div>
-        <div className="min-h-[300px]">
+        <div className="min-h-[350px]">
           <SLAGauge 
             compliance={summary?.sla_compliance || 100} 
             breached={summary?.sla_breached_count || 0} 
@@ -149,18 +159,17 @@ export function DashboardPage() {
       </motion.div>
 
       {/* Bottom Row — Traffic Chart + Device Pie + System Health */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="min-h-[300px]">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="min-h-[350px]">
           <TrafficChart />
         </div>
-        <div className="min-h-[300px]">
+        <div className="min-h-[350px]">
           <DeviceStatusPieChart devices={devices} />
         </div>
-        <div className="min-h-[300px]">
+        <div className="min-h-[350px]">
           <SystemHealthGauge summary={summary} />
         </div>
       </motion.div>
-      
     </motion.div>
   );
 }

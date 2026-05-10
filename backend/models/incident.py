@@ -72,6 +72,9 @@ class Incident(TimestampMixin, SoftDeleteMixin, db.Model):
         cascade="all, delete-orphan",
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Incident #{self.id} [{self.severity}] {self.title[:40]}>"
 
@@ -115,6 +118,9 @@ class IncidentTimeline(db.Model):
     # Relationships
     performed_by = db.relationship("User", foreign_keys=[performed_by_id])
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -144,6 +150,9 @@ class Escalation(db.Model):
     # Relationships
     from_user = db.relationship("User", foreign_keys=[from_user_id])
     to_user = db.relationship("User", foreign_keys=[to_user_id])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {

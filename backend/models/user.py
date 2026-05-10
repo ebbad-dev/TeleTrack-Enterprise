@@ -130,6 +130,9 @@ class User(TimestampMixin, SoftDeleteMixin, db.Model):
         "UserSession", backref="user", lazy="dynamic", cascade="all, delete-orphan"
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<User {self.username}>"
 

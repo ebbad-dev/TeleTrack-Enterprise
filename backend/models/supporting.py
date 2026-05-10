@@ -29,6 +29,9 @@ class Location(TimestampMixin, SoftDeleteMixin, db.Model):
     longitude = db.Column(db.Numeric(11, 8))
     image_url = db.Column(db.String(500))
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Location {self.location_name}>"
 
@@ -66,6 +69,9 @@ class Vendor(TimestampMixin, SoftDeleteMixin, db.Model):
     support_email = db.Column(db.String(150))
     support_phone = db.Column(db.String(30))
     website = db.Column(db.String(255))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return f"<Vendor {self.vendor_name}>"
@@ -111,6 +117,9 @@ class Technician(TimestampMixin, SoftDeleteMixin, db.Model):
     # Relationships
     user = db.relationship("User", foreign_keys=[user_id], backref="technician_profile")
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f"<Technician {self.full_name}>"
 
@@ -148,6 +157,9 @@ class SLAPolicy(TimestampMixin, db.Model):
     resolution_time_minutes = db.Column(db.Integer, nullable=False)
     escalation_required = db.Column(db.Boolean, default=False)
     notification_interval = db.Column(db.Integer, default=30)  # minutes between reminders
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return f"<SLAPolicy {self.severity_level}>"
@@ -193,6 +205,9 @@ class MaintenanceLog(TimestampMixin, db.Model):
 
     # Relationships
     technician = db.relationship("Technician", foreign_keys=[technician_id])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {
@@ -244,6 +259,9 @@ class NetworkLink(TimestampMixin, db.Model):
         db.CheckConstraint("source_device_id != target_device_id", name="ck_link_different"),
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -285,6 +303,9 @@ class AuditLog(db.Model):
 
     # Relationships
     user = db.relationship("User", foreign_keys=[user_id])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {
@@ -329,6 +350,9 @@ class Notification(db.Model):
 
     # Relationships
     user = db.relationship("User", foreign_keys=[user_id], backref="notifications")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def to_dict(self):
         return {

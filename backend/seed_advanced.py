@@ -3,22 +3,30 @@ from datetime import datetime, timezone, timedelta
 from extensions import db
 from models import (
     Technician, Location, Vendor, MaintenanceLog, SLAPolicy,
-    AuditLog, Incident, Notification, Device, User
+    AuditLog, Incident, Notification, Device, User, Alert
 )
 
 def seed_advanced(app):
     with app.app_context():
-        # Check if we already have technicians
-        if Technician.query.count() < 5:
-            techs = [
-                Technician(full_name="Sarah Jenkins", email="s.jenkins@teletrack.corp", specialization="Network Engineering", shift="Morning", status="available"),
-                Technician(full_name="David Chen", email="d.chen@teletrack.corp", specialization="Hardware Replacement", shift="Evening", status="busy"),
-                Technician(full_name="Marcus Vance", email="m.vance@teletrack.corp", specialization="Security", shift="Night", status="available"),
-                Technician(full_name="Elena Rostova", email="e.rostova@teletrack.corp", specialization="Fiber Optics", shift="Morning", status="available"),
-                Technician(full_name="James Taggart", email="j.taggart@teletrack.corp", specialization="Datacenter Ops", shift="Flexible", status="busy"),
-            ]
-            db.session.bulk_save_objects(techs)
-            
+        # 1. Ensure at least one User exists
+        if User.query.count() == 0:
+            from models import Role
+            admin_role = Role.query.filter_by(name='admin').first()
+            user = User(
+                username="admin", 
+                email="admin@teletrack.corp", 
+                full_name="System Administrator",
+                password_hash="pbkdf2:sha256:260000$...", # Placeholder
+                status="active"
+            )
+            if admin_role:
+                user.roles.append(admin_role)
+            db.session.add(user)
+            db.session.commit()
+
+        user_id = User.query.first().id
+
+        # 2. Locations
         if Location.query.count() < 4:
             locs = [
                 Location(location_name="Alpha Datacenter", city="New York", country="USA", site_type="Primary", address_line="100 Wall St"),
@@ -27,7 +35,11 @@ def seed_advanced(app):
                 Location(location_name="Delta Facility", city="Frankfurt", country="Germany", site_type="Backup", address_line="10 Euro Platz"),
             ]
             db.session.bulk_save_objects(locs)
+            db.session.commit()
+        
+        loc_id = Location.query.first().id
 
+        # 3. Vendors
         if Vendor.query.count() < 3:
             vendors = [
                 Vendor(vendor_name="Cisco Systems", country_of_origin="USA", support_email="support@cisco.test", support_phone="1-800-553-2447", website="https://cisco.com"),
@@ -35,49 +47,104 @@ def seed_advanced(app):
                 Vendor(vendor_name="Arista", country_of_origin="USA", support_email="support@arista.test", website="https://arista.com"),
             ]
             db.session.bulk_save_objects(vendors)
+            db.session.commit()
+
+        # 4. Devices (Fleet)
+        if Device.query.count() < 5:
+            devices = [
+                Device(device_name="NY-CORE-R01", device_type="Router", location_id=loc_id, status="online", ip_address="10.0.0.1", cpu_usage=45.2, memory_usage=62.1, temperature=42.5),
+                Device(device_name="LON-BR-SW02", device_type="Switch", location_id=loc_id, status="online", ip_address="10.0.1.5", cpu_usage=12.5, memory_usage=34.8, temperature=38.2),
+                Device(device_name="TOK-EDGE-F01", device_type="Firewall", location_id=loc_id, status="degraded", ip_address="10.0.2.10", cpu_usage=88.7, memory_usage=91.2, temperature=56.4),
+                Device(device_name="FRA-SRV-H03", device_type="Server", location_id=loc_id, status="online", ip_address="10.0.3.15", cpu_usage=33.1, memory_usage=55.4, temperature=40.1),
+                Device(device_name="NY-DIST-SW01", device_type="Switch", location_id=loc_id, status="offline", ip_address="10.0.0.2", cpu_usage=0, memory_usage=0, temperature=0),
+            ]
+            for d in devices:
+                try:
+                    db.session.add(d)
+                    db.session.commit()
+                except:
+                    db.session.rollback()
+
+        dev_id = Device.query.first().id
+
+        # 5. Technicians
+        if Technician.query.count() < 3:
+            techs = [
+                Technician(full_name="Sarah Jenkins", email="s.jenkins@teletrack.corp", specialization="Network Engineering", shift="Morning", status="available"),
+                Technician(full_name="David Chen", email="d.chen@teletrack.corp", specialization="Hardware Replacement", shift="Evening", status="busy"),
+                Technician(full_name="Marcus Vance", email="m.vance@teletrack.corp", specialization="Security", shift="Night", status="available"),
+            ]
+            for t in techs:
+                try:
+                    db.session.add(t)
+                    db.session.commit()
+                except:
+                    db.session.rollback()
             
+        tech_id = Technician.query.first().id
+
+        # 6. SLA Policies
         if SLAPolicy.query.count() < 3:
             slas = [
-                SLAPolicy(severity_level="critical", max_response_time_minutes=15, max_resolution_time_minutes=120),
-                SLAPolicy(severity_level="high", max_response_time_minutes=30, max_resolution_time_minutes=240),
-                SLAPolicy(severity_level="medium", max_response_time_minutes=120, max_resolution_time_minutes=1440),
+                SLAPolicy(severity_level="critical", response_time_minutes=15, resolution_time_minutes=120),
+                SLAPolicy(severity_level="high", response_time_minutes=30, resolution_time_minutes=240),
+                SLAPolicy(severity_level="medium", response_time_minutes=120, resolution_time_minutes=1440),
             ]
-            db.session.bulk_save_objects(slas)
+            for s in slas:
+                try:
+                    db.session.add(s)
+                    db.session.commit()
+                except:
+                    db.session.rollback()
 
-        db.session.commit()
-        
-        # We need IDs for foreign keys
-        tech_id = Technician.query.first().id
-        dev_id = Device.query.first().id
-        user_id = User.query.first().id
-        
-        if MaintenanceLog.query.count() < 3:
-            logs = [
-                MaintenanceLog(device_id=dev_id, technician_id=tech_id, maintenance_type="Preventive", description="Routine firmware upgrade and dusting.", outcome="Successful", scheduled_date=datetime.now(timezone.utc) - timedelta(days=5)),
-                MaintenanceLog(device_id=dev_id, technician_id=tech_id, maintenance_type="Corrective", description="Replaced failing power supply.", outcome="Successful", scheduled_date=datetime.now(timezone.utc) - timedelta(days=2)),
+        # 7. Alerts
+        if Alert.query.count() < 10:
+            alerts = [
+                Alert(alert_type="Unauthorized Access", severity="critical", message="Multiple failed SSH attempts from 192.168.5.110", device_id=dev_id, status="open"),
+                Alert(alert_type="High CPU Load", severity="high", message="CPU usage exceeded 90% threshold", device_id=dev_id, status="open"),
+                Alert(alert_type="Link Flapping", severity="medium", message="Port GigabitEthernet0/1 changed state to down", device_id=dev_id, status="open"),
             ]
-            db.session.bulk_save_objects(logs)
+            for a in alerts:
+                try:
+                    db.session.add(a)
+                    db.session.commit()
+                except:
+                    db.session.rollback()
 
-        if Incident.query.count() < 3:
+        # 8. Incidents
+        if Incident.query.count() < 5:
             incs = [
-                Incident(title="Core Router Failure", description="London Bravo Hub core router stopped responding to BGP.", severity="critical", status="resolved", impact="Major", reported_by_id=user_id),
-                Incident(title="High Latency on Trans-Atlantic", description="Fiber cut caused routing fallback resulting in +40ms latency.", severity="high", status="open", impact="Moderate", reported_by_id=user_id),
+                Incident(title="Core Router Overload", description="NY-CORE-R01 experiencing high packet drop.", severity="critical", status="open", impact="Major", reported_by_id=user_id),
+                Incident(title="Latency Spike", description="Link between NY and LON showing 200ms delay.", severity="high", status="open", impact="Moderate", reported_by_id=user_id),
             ]
             db.session.bulk_save_objects(incs)
-            
-        if AuditLog.query.count() < 10:
-            audits = [
-                AuditLog(user_id=user_id, action="LOGIN", resource="System", ip_address="192.168.1.50"),
-                AuditLog(user_id=user_id, action="CREATE", resource="Device", ip_address="192.168.1.50"),
-                AuditLog(user_id=user_id, action="UPDATE", resource="Alert", ip_address="192.168.1.50"),
-            ]
-            db.session.bulk_save_objects(audits)
+
+        # 9. Device Metrics (TimeSeries)
+        from models import DeviceMetric
+        if DeviceMetric.query.count() < 50:
+            import random
+            for i in range(24):
+                ts = datetime.now(timezone.utc) - timedelta(hours=i)
+                m = DeviceMetric(device_id=dev_id, metric_type="cpu", value=random.uniform(20, 80), unit="%", timestamp=ts)
+                db.session.add(m)
+            db.session.commit()
+
+        # 9. Network Links (Topology)
+        from models.supporting import NetworkLink
+        if NetworkLink.query.count() < 3:
+            all_devs = Device.query.all()
+            if len(all_devs) >= 2:
+                links = [
+                    NetworkLink(source_device_id=all_devs[0].id, target_device_id=all_devs[1].id, link_type="Fiber", status="active"),
+                    NetworkLink(source_device_id=all_devs[1].id, target_device_id=all_devs[2].id, link_type="Ethernet", status="active"),
+                ]
+                db.session.bulk_save_objects(links)
 
         db.session.commit()
         print("Advanced seeding complete.")
 
 if __name__ == "__main__":
     import app
-    # Create mock app context
+    import random
     flask_app = app.create_app()
     seed_advanced(flask_app)
