@@ -1,7 +1,8 @@
-"""
-TeleTrack Enterprise — Application Entry Point
-Run this file to start the development server.
-"""
+import os
+import sys
+
+# Add current directory to path for local imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
 from extensions import socketio

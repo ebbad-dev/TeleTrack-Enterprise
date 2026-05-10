@@ -4,8 +4,13 @@ Background task runner with periodic beat schedule.
 """
 
 import os
+import sys
 from celery import Celery
 from celery.schedules import crontab
+
+# Add current directory to path for local imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from app import create_app
 
 # Create Flask app context for Celery tasks

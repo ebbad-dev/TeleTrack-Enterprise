@@ -1,6 +1,11 @@
 import os
+import sys
 import random
 from datetime import datetime, timezone, timedelta
+
+# Add current directory to path for local imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from extensions import db
 from models import (
     Technician, Location, Vendor, MaintenanceLog, SLAPolicy,
