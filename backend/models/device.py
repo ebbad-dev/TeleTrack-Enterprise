@@ -41,6 +41,7 @@ class Device(TimestampMixin, SoftDeleteMixin, AuditMixin, db.Model):
     snmp_port = db.Column(db.Integer, default=161)
     monitoring_enabled = db.Column(db.Boolean, default=True)
     ping_interval = db.Column(db.Integer, default=60)  # seconds
+    maintenance_until = db.Column(db.DateTime, nullable=True) # Silences alerts until this time
 
     # Relationships
     vendor = db.relationship("Vendor", backref="devices")
@@ -89,6 +90,7 @@ class Device(TimestampMixin, SoftDeleteMixin, AuditMixin, db.Model):
             "temperature": self.temperature,
             "image_url": self.image_url,
             "monitoring_enabled": self.monitoring_enabled,
+            "maintenance_until": self.maintenance_until.isoformat() if self.maintenance_until else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

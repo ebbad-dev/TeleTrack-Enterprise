@@ -169,10 +169,26 @@ export function DevicesPage() {
               placeholder="Search devices..."
             />
           </div>
-          <Button variant="primary" onClick={openCreateModal} className="shrink-0 flex items-center shadow-[0_0_10px_rgba(0,240,255,0.4)]">
-            <Plus size={18} className="mr-2" />
-            NEW DEVICE
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                const subnet = window.prompt("ENTER TARGET SUBNET (CIDR):", "192.168.1.0/24");
+                if (subnet) {
+                  devicesApi.discover({ subnet }).then(res => {
+                    if (res.success) alert("SCAN INITIALIZED. CHECK NOTIFICATIONS FOR RESULTS.");
+                  });
+                }
+              }} 
+              className="shrink-0 flex items-center border border-primary/30 hover:border-primary/60 text-primary/80"
+            >
+              SCAN NETWORK
+            </Button>
+            <Button variant="primary" onClick={openCreateModal} className="shrink-0 flex items-center shadow-[0_0_10px_rgba(0,240,255,0.4)]">
+              <Plus size={18} className="mr-2" />
+              NEW DEVICE
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -185,8 +201,7 @@ export function DevicesPage() {
           setGlobalFilter={setGlobalFilter} 
           onEdit={openEditModal}
           onDelete={handleDelete}
-          onExport={() => exportApi.exportDevices()}
-          exportLabel="Export CSV"
+          onExport={(format) => exportApi.exportDevices(format)}
         />
       </div>
 

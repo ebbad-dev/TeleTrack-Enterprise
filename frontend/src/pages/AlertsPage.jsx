@@ -186,8 +186,7 @@ export function AlertsPage() {
           setGlobalFilter={setGlobalFilter} 
           onEdit={openEditModal}
           onDelete={handleDelete}
-          onExport={() => exportApi.exportAlerts()}
-          exportLabel="Export CSV"
+          onExport={(format) => exportApi.exportAlerts({}, format)}
         />
       </div>
 

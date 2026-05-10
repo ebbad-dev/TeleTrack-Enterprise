@@ -105,8 +105,7 @@ export function AuditLogPage() {
           loading={loading} 
           globalFilter={globalFilter} 
           setGlobalFilter={setGlobalFilter} 
-          onExport={() => exportApi.exportAuditLogs()}
-          exportLabel="Export CSV"
+          onExport={(format) => exportApi.exportAuditLogs(format)}
         />
       </div>
     </motion.div>

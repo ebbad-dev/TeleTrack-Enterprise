@@ -51,6 +51,11 @@ celery.conf.beat_schedule = {
         'task': 'tasks.notifications.check_sla_breaches',
         'schedule': 120.0,
     },
+    # AI Predictive Analytics every 10 minutes
+    'analyze-predictive-trends': {
+        'task': 'tasks.monitoring.analyze_predictive_trends',
+        'schedule': 600.0,
+    },
 }
 celery.conf.timezone = 'UTC'
 

@@ -80,7 +80,13 @@ def ping_all_devices():
                 device.status = 'offline'
                 offline_count += 1
 
-                if not was_offline:
+                # ─── Maintenance Mode Check ──────────────────────────
+                is_in_maintenance = (
+                    device.maintenance_until and 
+                    device.maintenance_until > datetime.now(timezone.utc).replace(tzinfo=None)
+                )
+
+                if not was_offline and not is_in_maintenance:
                     # Device just went offline — generate alert
                     new_alert = Alert(
                         device_id=device.id,
@@ -218,3 +224,77 @@ def collect_device_metrics():
     db.session.commit()
     logger.info(f"Metrics collection completed. {collected} devices measured.")
     return f"{collected} devices"
+
+
+@shared_task(name='tasks.monitoring.analyze_predictive_trends')
+def analyze_predictive_trends():
+    """
+    Predictive Analytics Engine.
+    Uses Z-Score statistical anomaly detection to identify unusual patterns
+    before they become outages (Phase 5).
+    """
+    import statistics
+    from sqlalchemy import func
+    
+    logger.info("Starting predictive analytics cycle...")
+    devices = Device.query.filter_by(is_deleted=False, monitoring_enabled=True).all()
+    anomalies_found = 0
+
+    for device in devices:
+        # Check CPU, Memory, and Latency for anomalies
+        for m_type in ['cpu', 'memory', 'latency']:
+            # Get last 20 samples for baseline
+            recent_metrics = DeviceMetric.query.filter_by(
+                device_id=device.id, 
+                metric_type=m_type
+            ).order_by(DeviceMetric.timestamp.desc()).limit(20).all()
+
+            if len(recent_metrics) < 10:
+                continue # Need enough data for a baseline
+
+            values = [m.value for m in recent_metrics]
+            current_value = values[0]
+            baseline = values[1:] # Exclude the most recent one for comparison
+
+            mean = statistics.mean(baseline)
+            stdev = statistics.stdev(baseline)
+
+            if stdev == 0: continue
+
+            # Calculate Z-score (standard deviations from mean)
+            z_score = abs(current_value - mean) / stdev
+
+            # Threshold: 3.0 is a common statistical anomaly (99.7% confidence)
+            if z_score > 3.0:
+                # Potential Anomaly Detected
+                existing = Alert.query.filter_by(
+                    device_id=device.id,
+                    alert_type="Anomaly Detected",
+                    status="open"
+                ).filter(Alert.message.contains(m_type)).first()
+
+                if not existing:
+                    alert = Alert(
+                        device_id=device.id,
+                        alert_type="Anomaly Detected",
+                        severity="warning",
+                        message=f"PREDICTIVE: Unusual {m_type} pattern detected on {device.device_name}. Value {current_value} is {round(z_score, 2)}σ from baseline.",
+                        status="open",
+                    )
+                    db.session.add(alert)
+                    anomalies_found += 1
+                    
+                    # Log to audit for security/tracing
+                    from models.supporting import AuditLog
+                    audit = AuditLog(
+                        action="ANOMALY_DETECTED",
+                        resource="DeviceMetric",
+                        resource_id=device.id,
+                        new_value=f"Z-Score: {z_score} for {m_type}"
+                    )
+                    db.session.add(audit)
+
+    db.session.commit()
+    logger.info(f"Predictive cycle completed. {anomalies_found} anomalies flagged.")
+    return f"{anomalies_found} anomalies"
+

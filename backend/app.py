@@ -82,6 +82,10 @@ def create_app(config_class=None):
     app.register_blueprint(auth_bp)
     register_blueprints(app)
 
+    # ─── Prometheus Monitoring Middleware ──────────────────────────
+    from utils.metrics import init_metrics_middleware
+    init_metrics_middleware(app)
+
     # ─── Health Check ─────────────────────────────────────────────
     @app.route("/api/health", methods=["GET"])
     def health():

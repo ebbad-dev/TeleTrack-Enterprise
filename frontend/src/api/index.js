@@ -18,6 +18,7 @@ export const devicesApi = {
   updateDevice: (id, data) => apiClient.put(`/devices/${id}`, data),
   deleteDevice: (id) => apiClient.delete(`/devices/${id}`),
   getDeviceMetrics: (id, params) => apiClient.get(`/devices/${id}/metrics`, { params }),
+  discover: (data) => apiClient.post('/devices/discover', data),
 };
 
 export const alertsApi = {
@@ -25,6 +26,14 @@ export const alertsApi = {
   createAlert: (data) => apiClient.post('/alerts', data),
   updateAlert: (id, data) => apiClient.put(`/alerts/${id}`, data),
   deleteAlert: (id) => apiClient.delete(`/alerts/${id}`),
+};
+
+export const filesApi = {
+  upload: (formData) => apiClient.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getIncidentFiles: (incidentId) => apiClient.get(`/files/incident/${incidentId}`),
+  getDownloadUrl: (attachmentId) => `/api/files/download/${attachmentId}`,
 };
 
 export const exportApi = {
