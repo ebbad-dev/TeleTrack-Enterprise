@@ -1,232 +1,257 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Server, Activity, ShieldAlert, Cpu, Network, HeartPulse, Clock, Database } from 'lucide-react';
+import { Server, Activity, AlertTriangle, Users, Shield, Flame, Cpu, HardDrive, Clock, TrendingUp, TrendingDown, Zap, Radio } from 'lucide-react';
 import { dashboardApi, devicesApi, alertsApi, networkApi } from '../api';
 import { extractItems } from '../api/helpers';
 import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
-import { SystemHealthGauge } from '../components/dashboard/SystemHealthGauge';
-import { SLAGauge } from '../components/dashboard/SLAGauge';
 import { DeviceStatusPieChart } from '../components/dashboard/DeviceStatusPieChart';
+import { SLAGauge } from '../components/dashboard/SLAGauge';
 import { AlertTrendChart } from '../components/dashboard/AlertTrendChart';
 import { IncidentBreakdown } from '../components/dashboard/IncidentBreakdown';
+import { SystemHealthGauge } from '../components/dashboard/SystemHealthGauge';
 import { RecentAlertsFeed } from '../components/dashboard/RecentAlertsFeed';
 import { TrafficChart } from '../components/dashboard/TrafficChart';
-import useToastStore from '../store/toastStore';
 
+/* ── Live Clock ──────────────────────────────────────────── */
+function LiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+  return (
+    <span className="font-mono text-xs text-primary tabular-nums tracking-wider">
+      {time.toLocaleTimeString('en-US', { hour12: false })}
+    </span>
+  );
+}
+
+/* ── Animated Counter Hook ───────────────────────────────── */
+function useAnimatedValue(target, duration = 800) {
+  const [value, setValue] = useState(0);
+  const prevRef = useRef(0);
+
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = typeof target === 'number' ? target : parseFloat(target) || 0;
+    if (isNaN(to)) { setValue(target); return; }
+    
+    const startTime = performance.now();
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(from + (to - from) * eased);
+      setValue(current);
+      if (progress < 1) requestAnimationFrame(animate);
+      else prevRef.current = to;
+    };
+    requestAnimationFrame(animate);
+  }, [target, duration]);
+
+  return value;
+}
+
+/* ── Stat Card with animated counter ─────────────────────── */
+function StatCard({ label, value, icon: Icon, color, trend, suffix = '', index = 0 }) {
+  const numericValue = typeof value === 'number' ? value : null;
+  const animatedVal = useAnimatedValue(numericValue ?? 0);
+  const displayVal = numericValue !== null ? animatedVal : value;
+
+  const trendColor = trend > 0 ? 'text-success' : trend < 0 ? 'text-error' : 'text-textMuted';
+  const TrendIcon = trend > 0 ? TrendingUp : trend < 0 ? TrendingDown : null;
+
+  const glowMap = {
+    'text-primary': 'rgba(0,240,255,0.06)',
+    'text-success': 'rgba(0,255,136,0.06)',
+    'text-error': 'rgba(255,0,60,0.06)',
+    'text-warning': 'rgba(255,179,0,0.06)',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.05, type: 'spring', stiffness: 300, damping: 25 }}
+    >
+      <Card className="glass-card p-4 xl:p-5 group cursor-default relative overflow-hidden">
+        {/* Hover glow */}
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          style={{ background: `radial-gradient(circle at 50% 120%, ${glowMap[color] || 'rgba(0,240,255,0.05)'} 0%, transparent 70%)` }}
+        />
+        {/* Top accent line */}
+        <div className={`absolute top-0 left-3 right-3 h-[2px] rounded-full opacity-0 group-hover:opacity-60 transition-opacity duration-300 ${color === 'text-primary' ? 'bg-primary' : color === 'text-success' ? 'bg-success' : color === 'text-error' ? 'bg-error' : 'bg-warning'}`} />
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-3">
+            <div className={`p-2 rounded-lg bg-surface border border-border/50 ${color} group-hover:border-current/30 transition-all duration-300`}>
+              <Icon size={16} />
+            </div>
+            {TrendIcon && (
+              <div className={`flex items-center space-x-0.5 text-[9px] font-mono ${trendColor}`}>
+                <TrendIcon size={10} />
+                <span>{Math.abs(trend)}%</span>
+              </div>
+            )}
+          </div>
+          <p className={`text-2xl font-black ${color} tabular-nums tracking-tight counter-value`}>
+            {displayVal}{suffix}
+          </p>
+          <p className="text-[9px] font-medium text-textMuted uppercase tracking-wider mt-1.5">{label}</p>
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
+/* ── Activity Pulse ──────────────────────────────────────── */
+function ActivityPulse() {
+  return (
+    <div className="flex items-center gap-1.5">
+      {[0, 1, 2, 3, 4].map(i => (
+        <motion.div
+          key={i}
+          className="w-1 bg-primary rounded-full"
+          animate={{ height: [4, 12 + Math.random() * 8, 4] }}
+          transition={{ duration: 0.8 + i * 0.1, repeat: Infinity, ease: 'easeInOut', delay: i * 0.1 }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Dashboard Page ──────────────────────────────────────── */
 export function DashboardPage() {
   const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-  
-  // Real-time feeds
   const [devices, setDevices] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [links, setLinks] = useState([]);
-
-  const toast = useToastStore;
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
       try {
         const [sumRes, devRes, alertRes, linkRes] = await Promise.all([
           dashboardApi.getSummary(),
-          devicesApi.getDevices({ per_page: 5 }),
-          alertsApi.getAlerts({ status: 'open', per_page: 5 }),
-          networkApi.getLinks({ per_page: 5 })
+          devicesApi.getDevices(),
+          alertsApi.getAlerts({ limit: 10 }),
+          networkApi.getLinks()
         ]);
-        
         if (sumRes.success) setSummary(sumRes.data);
         setDevices(extractItems(devRes));
         setAlerts(extractItems(alertRes));
         setLinks(extractItems(linkRes));
-      } catch (error) {
-        console.error('Dashboard fetch error:', error);
-        toast.error('Failed to load dashboard metrics');
+      } catch (err) {
+        console.error('Dashboard load failed', err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000);
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center space-y-4">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <div className="text-primary font-mono text-lg tracking-widest animate-pulse neon-text">INITIALIZING TELEMETRY...</div>
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <div className="relative">
+          <div className="w-20 h-20 border-4 border-primary/20 rounded-full" />
+          <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-primary rounded-full animate-spin" />
+          <div className="absolute inset-2 w-16 h-16 border-2 border-transparent border-b-accent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+        </div>
+        <p className="text-primary font-mono text-sm tracking-[0.3em] animate-pulse uppercase">
+          Initializing Telemetry
+        </p>
+        <div className="flex gap-1">
+          {[0,1,2].map(i => (
+            <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-primary"
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
+            />
+          ))}
+        </div>
       </div>
     );
   }
 
-  const kpiCards = [
-    { title: "TOTAL DEVICES", value: summary?.total_devices || 0, icon: <Server size={24} />, color: "text-primary", border: "border-primary" },
-    { title: "ACTIVE ALERTS", value: summary?.active_alerts || 0, icon: <ShieldAlert size={24} />, color: "text-error", border: "border-error" },
-    { title: "NETWORK LINKS", value: summary?.total_links || 0, icon: <Network size={24} />, color: "text-info", border: "border-info" },
-    { title: "SYSTEM UPTIME", value: "99.98%", icon: <Clock size={24} />, color: "text-success", border: "border-success" },
+  const s = summary || {};
+  const stats = [
+    { label: 'Network Health', value: s.network_health || 0, suffix: '%', icon: Activity, color: 'text-success', trend: 2.4 },
+    { label: 'Online Nodes', value: s.online_devices || 0, icon: Server, color: 'text-primary', trend: 0 },
+    { label: 'Active Threats', value: s.open_alerts || 0, icon: AlertTriangle, color: 'text-error', trend: -8 },
+    { label: 'Open Incidents', value: s.open_incidents || 0, icon: Flame, color: 'text-warning', trend: 0 },
+    { label: 'SLA Compliance', value: s.sla_compliance || 100, suffix: '%', icon: Shield, color: 'text-primary', trend: 1.2 },
+    { label: 'Avg CPU Load', value: s.avg_cpu || 0, suffix: '%', icon: Cpu, color: s.avg_cpu > 80 ? 'text-error' : 'text-success', trend: -3 },
+    { label: 'Memory Usage', value: s.avg_memory || 0, suffix: '%', icon: HardDrive, color: s.avg_memory > 80 ? 'text-warning' : 'text-primary', trend: 5 },
+    { label: 'Operatives', value: `${s.available_technicians || 0}/${s.total_technicians || 0}`, icon: Users, color: 'text-success', trend: 0 },
   ];
 
+  const anim = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.04 } }
+  };
+  const item = {
+    hidden: { opacity: 0, y: 16 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } }
+  };
+
   return (
-    <motion.div 
-      className="space-y-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="flex items-center justify-between">
+    <motion.div className="space-y-6" variants={anim} initial="hidden" animate="show">
+      {/* Header */}
+      <motion.div variants={item} className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-textMain tracking-wide">COMMAND <span className="text-primary neon-text">CENTER</span></h1>
-          <p className="text-textMuted mt-1 font-mono text-sm uppercase">Global Infrastructure Overview</p>
+          <h1 className="text-3xl font-black text-textMain tracking-tight">
+            Command <span className="text-primary neon-text">Center</span>
+          </h1>
+          <p className="text-textMuted mt-1 font-mono text-xs uppercase tracking-widest flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span className="status-dot status-dot-online" />
+              Infrastructure Telemetry Stream
+            </span>
+            <span className="hidden sm:inline text-textMuted/50">|</span>
+            <span className="hidden sm:flex items-center gap-1.5">
+              <Radio size={10} className="text-primary animate-pulse" />
+              Live
+            </span>
+          </p>
         </div>
-        <div className="flex items-center space-x-2 bg-surfaceHighlight/50 px-4 py-2 rounded-lg border border-border">
-          <Activity size={16} className="text-success animate-pulse" />
-          <span className="text-xs font-mono text-success tracking-widest">SYSTEM ONLINE</span>
+        <div className="flex items-center gap-4 text-xs font-mono text-textMuted">
+          <ActivityPulse />
+          <div className="flex items-center gap-1.5">
+            <Clock size={12} className="text-primary" />
+            <LiveClock />
+          </div>
+          <span className="hidden sm:inline text-textMuted/40">Region: Global-Alpha</span>
         </div>
+      </motion.div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+        {stats.map((st, i) => <StatCard key={i} {...st} index={i} />)}
       </div>
 
-      {/* KPI Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((kpi, i) => (
-          <Card key={i} className={`border-l-4 ${kpi.border} bg-surface/60 hover:bg-surfaceHighlight/50 transition-colors`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-textMuted font-mono font-semibold tracking-wider mb-1">{kpi.title}</p>
-                <h3 className="text-3xl font-bold text-textMain">{kpi.value}</h3>
-              </div>
-              <div className={`p-3 rounded-lg bg-surfaceHighlight ${kpi.color}`}>
-                {kpi.icon}
-              </div>
-            </div>
-          </Card>
-        ))}
+      {/* Row: Alert Trend + Recent Alerts */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <motion.div variants={item} className="xl:col-span-2 min-h-[360px]">
+          <AlertTrendChart />
+        </motion.div>
+        <motion.div variants={item} className="min-h-[360px]">
+          <RecentAlertsFeed alerts={alerts} />
+        </motion.div>
       </div>
 
-      {/* Main Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="h-96 p-0 overflow-hidden flex flex-col relative">
-            <div className="p-4 border-b border-border bg-surfaceHighlight/30 flex justify-between items-center z-10">
-              <h3 className="text-sm font-bold text-textMain font-mono uppercase tracking-wider flex items-center">
-                <Activity size={16} className="mr-2 text-primary" />
-                Network Traffic Metrics
-              </h3>
-            </div>
-            <div className="flex-1 w-full h-full relative p-4">
-              <TrafficChart />
-            </div>
-          </Card>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="h-80">
-              <AlertTrendChart />
-            </Card>
-            <Card className="h-80">
-              <IncidentBreakdown />
-            </Card>
-          </div>
-        </div>
+      {/* Row: Device Pie + Incident + SLA + System Health */}
+      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="min-h-[320px]"><DeviceStatusPieChart devices={devices} /></div>
+        <div className="min-h-[320px]"><IncidentBreakdown /></div>
+        <div className="min-h-[320px]"><SLAGauge compliance={s.sla_compliance || 100} breached={s.sla_breached_count || 0} /></div>
+        <div className="min-h-[320px]"><SystemHealthGauge summary={s} /></div>
+      </motion.div>
 
-        <div className="space-y-6">
-          <Card className="flex flex-col items-center justify-center p-6 h-48 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-cyber-grid opacity-20"></div>
-            <SystemHealthGauge value={summary?.healthy_devices ? Math.round((summary.healthy_devices / Math.max(1, summary.total_devices)) * 100) : 100} />
-            <h3 className="mt-4 text-sm font-bold font-mono tracking-widest text-textMain z-10">INFRASTRUCTURE HEALTH</h3>
-          </Card>
-          
-          <Card className="flex flex-col items-center justify-center p-6 h-48 relative overflow-hidden">
-            <div className="absolute inset-0 bg-cyber-grid opacity-20"></div>
-            <SLAGauge compliance={94.5} />
-            <h3 className="mt-4 text-sm font-bold font-mono tracking-widest text-textMain z-10">SLA COMPLIANCE</h3>
-          </Card>
-
-          <Card className="h-[23rem] flex flex-col p-0">
-            <div className="p-4 border-b border-border bg-surfaceHighlight/30">
-              <h3 className="text-sm font-bold text-textMain font-mono uppercase tracking-wider flex items-center">
-                <Database size={16} className="mr-2 text-primary" />
-                Device Distribution
-              </h3>
-            </div>
-            <div className="flex-1 p-4">
-              <DeviceStatusPieChart />
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Bottom Data Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-0 overflow-hidden">
-          <div className="p-4 border-b border-border bg-surfaceHighlight/30 flex justify-between items-center">
-            <h3 className="text-sm font-bold text-textMain font-mono uppercase tracking-wider flex items-center">
-              <ShieldAlert size={16} className="mr-2 text-error" />
-              Critical Threat Feed
-            </h3>
-            <Badge variant="error" className="animate-pulse">{alerts.length} ACTIVE</Badge>
-          </div>
-          <div className="p-0">
-            {alerts.length > 0 ? (
-              <RecentAlertsFeed alerts={alerts} />
-            ) : (
-              <div className="p-8 text-center text-textMuted font-mono text-sm">NO ACTIVE THREATS DETECTED</div>
-            )}
-          </div>
-        </Card>
-
-        <Card className="p-0 overflow-hidden">
-          <div className="p-4 border-b border-border bg-surfaceHighlight/30">
-            <h3 className="text-sm font-bold text-textMain font-mono uppercase tracking-wider flex items-center">
-              <Cpu size={16} className="mr-2 text-primary" />
-              Resource Intensive Nodes
-            </h3>
-          </div>
-          <div className="p-0">
-            {devices.length > 0 ? (
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-textMuted uppercase bg-surfaceHighlight/10 border-b border-border">
-                  <tr>
-                    <th className="px-4 py-3">Node ID</th>
-                    <th className="px-4 py-3">CPU</th>
-                    <th className="px-4 py-3">MEM</th>
-                    <th className="px-4 py-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {devices.map(dev => (
-                    <tr key={dev.id} className="hover:bg-surfaceHighlight/20 transition-colors">
-                      <td className="px-4 py-3 font-mono font-bold text-textMain">{dev.device_name}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <span className={`font-mono text-xs ${dev.cpu_usage > 80 ? 'text-error' : 'text-textMuted'}`}>{dev.cpu_usage || 0}%</span>
-                          <div className="w-16 h-1.5 bg-surfaceHighlight rounded-full overflow-hidden">
-                            <div className={`h-full ${dev.cpu_usage > 80 ? 'bg-error' : 'bg-primary'}`} style={{ width: `${Math.min(100, dev.cpu_usage || 0)}%` }}></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <span className={`font-mono text-xs ${dev.memory_usage > 80 ? 'text-warning' : 'text-textMuted'}`}>{dev.memory_usage || 0}%</span>
-                          <div className="w-16 h-1.5 bg-surfaceHighlight rounded-full overflow-hidden">
-                            <div className={`h-full ${dev.memory_usage > 80 ? 'bg-warning' : 'bg-info'}`} style={{ width: `${Math.min(100, dev.memory_usage || 0)}%` }}></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={dev.status === 'online' ? 'success' : dev.status === 'offline' ? 'error' : 'warning'}>
-                          {dev.status?.toUpperCase()}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-8 text-center text-textMuted font-mono text-sm">NO DEVICES REGISTERED</div>
-            )}
-          </div>
-        </Card>
-      </div>
+      {/* Row: Traffic Chart */}
+      <motion.div variants={item} className="min-h-[360px]">
+        <TrafficChart />
+      </motion.div>
     </motion.div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, History, Download, TerminalSquare } from 'lucide-react';
 import { exportApi } from '../api';
-import apiClient from '../api/client';
+import { auditApi } from '../api';
 import { extractItems } from '../api/helpers';
 import { DataTable } from '../components/ui/DataTable';
 import { Badge } from '../components/ui/Badge';
@@ -17,7 +17,7 @@ export function AuditLogPage() {
 
   const fetchData = async () => {
     try {
-      const res = await apiClient.get('/api/audit-logs');
+      const res = await auditApi.getLogs();
       setData(extractItems(res));
     } catch (error) {
       console.error('Failed to fetch audit logs', error);

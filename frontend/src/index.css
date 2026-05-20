@@ -1,56 +1,68 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
-
 /* ═══════════════════════════════════════════════════════════════════
-   Theme Variables — Dark Mode (default)
+   TeleTrack Enterprise — Design System v5.0
+   A premium, futuristic telemetry command-center aesthetic
    ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Theme Variables — Dark Mode (default) ────────────────────────── */
 :root,
 [data-theme="dark"] {
-  --color-bg: #0a0a0f;
-  --color-surface: #13141c;
-  --color-surface-hl: #1e202d;
+  --color-bg: #06080d;
+  --color-surface: #0d1117;
+  --color-surface-hl: #161b22;
   --color-primary: #00f0ff;
-  --color-text: #e0e0e0;
-  --color-text-muted: #8a8d9b;
-  --color-border: #2a2d3d;
-  --color-success: #00ff66;
+  --color-primary-dim: rgba(0, 240, 255, 0.15);
+  --color-text: #e6edf3;
+  --color-text-muted: #7d8590;
+  --color-border: #21262d;
+  --color-success: #00ff88;
   --color-warning: #ffb300;
   --color-error: #ff003c;
+  --color-accent: #7c3aed;
   --neon-glow: rgba(0, 240, 255, 0.5);
-  --grid-opacity: 0.03;
+  --neon-glow-success: rgba(0, 255, 136, 0.5);
+  --neon-glow-error: rgba(255, 0, 60, 0.5);
+  --grid-opacity: 0.025;
+  --glass-bg: rgba(13, 17, 23, 0.75);
+  --glass-border: rgba(0, 240, 255, 0.08);
+  --glass-blur: 20px;
+  --shadow-depth-1: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-depth-2: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-depth-3: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   Theme Variables — Light Mode
-   ═══════════════════════════════════════════════════════════════════ */
 [data-theme="light"] {
-  --color-bg: #f4f6f9;
+  --color-bg: #f0f2f5;
   --color-surface: #ffffff;
-  --color-surface-hl: #eef1f5;
+  --color-surface-hl: #f6f8fa;
   --color-primary: #0091a8;
+  --color-primary-dim: rgba(0, 145, 168, 0.1);
   --color-text: #1a1d2e;
   --color-text-muted: #6b7085;
-  --color-border: #d4d8e1;
-  --color-success: #00a844;
-  --color-warning: #cc8f00;
-  --color-error: #cc002f;
+  --color-border: #d0d7de;
+  --color-success: #1a7f37;
+  --color-warning: #9a6700;
+  --color-error: #cf222e;
+  --color-accent: #8250df;
   --neon-glow: rgba(0, 145, 168, 0.3);
-  --grid-opacity: 0.04;
+  --neon-glow-success: rgba(26, 127, 55, 0.3);
+  --neon-glow-error: rgba(207, 34, 46, 0.3);
+  --grid-opacity: 0.03;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 145, 168, 0.12);
+  --glass-blur: 16px;
+  --shadow-depth-1: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-depth-2: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-depth-3: 0 16px 40px rgba(0, 0, 0, 0.15);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  scroll-behavior: smooth;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 
 @layer base {
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background-color: var(--color-bg);
     color: var(--color-text);
     -webkit-font-smoothing: antialiased;
@@ -59,67 +71,312 @@ html {
     background-image:
       linear-gradient(rgba(0, 240, 255, var(--grid-opacity)) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 240, 255, var(--grid-opacity)) 1px, transparent 1px);
-    background-size: 30px 30px;
+    background-size: 40px 40px;
     background-attachment: fixed;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .font-mono {
-    font-family: 'JetBrains Mono', monospace;
-  }
+  h1, h2, h3, h4, h5, h6 { font-family: 'Inter', sans-serif; font-weight: 700; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
 }
 
 @layer components {
+
+  /* ══════════════════════════════════════════════════════════════════
+     Glass Panels — Layered depth with backdrop blur
+     ══════════════════════════════════════════════════════════════════ */
   .glass-panel {
-    background-color: rgba(19, 20, 28, 0.85);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow:
+      var(--shadow-depth-2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
     border: 1px solid var(--color-border);
-    @apply rounded-lg shadow-lg;
+    border-radius: 12px;
+    box-shadow: var(--shadow-depth-1);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .glass-card:hover {
+    border-color: rgba(0, 240, 255, 0.25);
+    box-shadow:
+      var(--shadow-depth-2),
+      0 0 20px rgba(0, 240, 255, 0.06);
+    transform: translateY(-2px);
   }
 
-  .glass-panel-hover {
-    @apply transition-all duration-300;
+  .glass-card-elevated {
+    background: linear-gradient(135deg, var(--glass-bg) 0%, rgba(0, 240, 255, 0.02) 100%);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow:
+      var(--shadow-depth-2),
+      0 0 30px rgba(0, 240, 255, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .glass-panel-hover:hover {
-    background-color: rgba(30, 32, 45, 0.9);
-    border-color: rgba(0, 240, 255, 0.5);
+  .glass-card-elevated:hover {
+    border-color: rgba(0, 240, 255, 0.3);
+    box-shadow:
+      var(--shadow-depth-3),
+      0 0 40px rgba(0, 240, 255, 0.08);
+    transform: translateY(-3px);
   }
 
+  /* ══════════════════════════════════════════════════════════════════
+     Neon Effects — Glowing accents for cyberpunk aesthetics
+     ══════════════════════════════════════════════════════════════════ */
   .neon-text {
-    text-shadow: 0 0 5px var(--neon-glow), 0 0 10px rgba(0, 240, 255, 0.3);
+    text-shadow:
+      0 0 7px var(--neon-glow),
+      0 0 20px rgba(0, 240, 255, 0.15);
   }
-
   .neon-border {
     border: 1px solid var(--color-primary);
-    box-shadow: 0 0 5px rgba(0, 240, 255, 0.3),
-                inset 0 0 5px rgba(0, 240, 255, 0.3);
+    box-shadow:
+      0 0 8px rgba(0, 240, 255, 0.2),
+      inset 0 0 8px rgba(0, 240, 255, 0.05);
+  }
+  .neon-pulse {
+    animation: neonPulse 3s ease-in-out infinite alternate;
+  }
+  @keyframes neonPulse {
+    0% { box-shadow: 0 0 5px rgba(0, 240, 255, 0.1); }
+    100% { box-shadow: 0 0 25px rgba(0, 240, 255, 0.3), 0 0 50px rgba(0, 240, 255, 0.1); }
   }
 
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  .neon-glow-subtle {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.08), 0 0 30px rgba(0, 240, 255, 0.03);
   }
-  ::-webkit-scrollbar-track {
-    background-color: var(--color-bg);
+
+  /* ══════════════════════════════════════════════════════════════════
+     Status Indicators — Pulsing live status dots
+     ══════════════════════════════════════════════════════════════════ */
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .status-dot-online {
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--neon-glow-success);
+    animation: statusPulse 2s infinite;
   }
+  .status-dot-offline {
+    background: var(--color-error);
+    box-shadow: 0 0 8px var(--neon-glow-error);
+  }
+  .status-dot-degraded {
+    background: var(--color-warning);
+    box-shadow: 0 0 8px rgba(255, 179, 0, 0.5);
+    animation: statusPulse 1.5s infinite;
+  }
+  @keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Skeleton Loaders — Shimmer effect for loading states
+     ══════════════════════════════════════════════════════════════════ */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-hl) 25%,
+      rgba(0, 240, 255, 0.04) 50%,
+      var(--color-surface-hl) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Premium Scrollbar — Themed scrollbar with hover glow
+     ══════════════════════════════════════════════════════════════════ */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-border);
-    border-radius: 4px;
-    transition: background-color 0.2s;
+    background: var(--color-border);
+    border-radius: 3px;
+    transition: background 0.2s;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 240, 255, 0.5);
+    background: var(--color-primary);
+    box-shadow: 0 0 6px var(--neon-glow);
   }
-}
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 
-.bg-cyber-grid {
-  background-image: 
-    linear-gradient(var(--color-primary) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-primary) 1px, transparent 1px);
+  /* ══════════════════════════════════════════════════════════════════
+     Data Table Enhancements — Premium table interactions
+     ══════════════════════════════════════════════════════════════════ */
+  .table-row-glow:hover {
+    background: var(--color-primary-dim) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Ambient Backgrounds — Layered atmospheric effects
+     ══════════════════════════════════════════════════════════════════ */
+  .bg-cyber-grid {
+    background-image:
+      linear-gradient(var(--color-primary) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-primary) 1px, transparent 1px);
+  }
+  .bg-radial-gradient {
+    background: radial-gradient(ellipse at center, rgba(0, 240, 255, 0.03) 0%, transparent 70%);
+  }
+  .bg-particles {
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(0, 240, 255, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 50% 80%, rgba(0, 255, 136, 0.02) 0%, transparent 50%);
+  }
+  .bg-mesh-gradient {
+    background:
+      radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.06) 0%, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(124, 58, 237, 0.04) 0%, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(255, 0, 60, 0.02) 0%, transparent 50%);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Button Ripple Effect — Material-inspired click feedback
+     ══════════════════════════════════════════════════════════════════ */
+  .btn-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.2) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .btn-ripple:active::after {
+    opacity: 1;
+    transition: opacity 0s;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Animated Counter — Tabular number styling for live metrics
+     ══════════════════════════════════════════════════════════════════ */
+  .counter-value {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Scan Line Animation — HUD scanning effect
+     ══════════════════════════════════════════════════════════════════ */
+  @keyframes scanLine {
+    0% { transform: translateY(-100%); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+  .scan-line {
+    animation: scanLine 3s linear infinite;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Breathing Glow — Subtle ambient glow animation
+     ══════════════════════════════════════════════════════════════════ */
+  @keyframes breathe {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+  .animate-breathe {
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Data Stream — Flowing line animation for telemetry feeds
+     ══════════════════════════════════════════════════════════════════ */
+  @keyframes dataStream {
+    0% { stroke-dashoffset: 100; }
+    100% { stroke-dashoffset: 0; }
+  }
+  .data-stream {
+    stroke-dasharray: 20 80;
+    animation: dataStream 2s linear infinite;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Hover Lift — Premium elevation on hover
+     ══════════════════════════════════════════════════════════════════ */
+  .hover-lift {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-depth-2);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Focus Ring — Accessible focus indicator with neon glow
+     ══════════════════════════════════════════════════════════════════ */
+  .focus-glow:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-primary), 0 0 12px var(--neon-glow);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Tag / Chip Styling — For inline status labels
+     ══════════════════════════════════════════════════════════════════ */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Gradient Border — Animated border gradient
+     ══════════════════════════════════════════════════════════════════ */
+  .gradient-border {
+    position: relative;
+    border-radius: 16px;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 240, 255, 0.3),
+      rgba(124, 58, 237, 0.2),
+      rgba(0, 255, 136, 0.15),
+      rgba(0, 240, 255, 0.3)
+    );
+    background-size: 300% 300%;
+    animation: gradientRotate 6s ease-in-out infinite;
+    z-index: -1;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1px;
+  }
+  @keyframes gradientRotate {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
 }

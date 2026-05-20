@@ -49,3 +49,6 @@ def register_routes(app):
     app.register_blueprint(notifications_bp)
     app.register_blueprint(dropdowns_bp)
     app.register_blueprint(search_bp)
+
+    from routes.database_objects import db_objects_bp
+    app.register_blueprint(db_objects_bp)

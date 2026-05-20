@@ -13,6 +13,7 @@ import { IncidentsPage } from './pages/IncidentsPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { TopologyPage } from './pages/TopologyPage';
+import { DatabaseStatsPage } from './pages/DatabaseStatsPage';
 import { ToastContainer } from './components/ui/Toast';
 import useThemeStore from './store/themeStore';
 import useSocketStore from './store/socketStore';
@@ -72,6 +73,7 @@ function AnimatedRoutes() {
           <Route path="/maintenance" element={<AnimatedPage><MaintenancePage /></AnimatedPage>} />
           <Route path="/audit-logs" element={<AnimatedPage><AuditLogPage /></AnimatedPage>} />
           <Route path="/topology" element={<AnimatedPage><TopologyPage /></AnimatedPage>} />
+          <Route path="/database" element={<AnimatedPage><DatabaseStatsPage /></AnimatedPage>} />
         </Route>
 
         {/* Catch-all redirect */}

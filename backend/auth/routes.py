@@ -270,8 +270,14 @@ def change_password():
 @jwt_required()
 def logout():
     """Revoke the current access token."""
+    from flask import current_app
     jti = get_jwt()["jti"]
 
+    # Add to in-memory blocklist
+    blocklist = current_app.config.get('TOKEN_BLOCKLIST', set())
+    blocklist.add(jti)
+
+    # Also mark session in DB if it exists
     session = UserSession.query.filter_by(jti=jti).first()
     if session:
         session.revoked = True

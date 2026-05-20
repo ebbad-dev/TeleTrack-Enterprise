@@ -1,5 +1,5 @@
 """
-TeleTrack Enterprise — Production Seed Data
+TeleTrack Enterprise  Production Seed Data
 Seeds the database with roles, permissions, admin user, and comprehensive sample data.
 Consolidated from seed_data.py + mega_seed.py into a single authoritative seeder.
 """
@@ -45,7 +45,7 @@ def seed_permissions():
                                description=f"{action.title()} {resource}"))
                 count += 1
     db.session.commit()
-    print(f"  ✓ {count} permissions created")
+    print(f"   {count} permissions created")
 
 
 def seed_roles():
@@ -55,7 +55,7 @@ def seed_roles():
     role_defs = {
         "super_admin": {
             "display_name": "Super Admin",
-            "description": "Full system access — all permissions",
+            "description": "Full system access  all permissions",
             "permissions": None,  # All permissions
         },
         "admin": {
@@ -141,7 +141,7 @@ def seed_roles():
         count += 1
 
     db.session.commit()
-    print(f"  ✓ {count} roles created")
+    print(f"   {count} roles created")
 
 
 def seed_admin_user():
@@ -160,7 +160,7 @@ def seed_admin_user():
         if backup_role and backup_role not in admin.roles:
             admin.roles.append(backup_role)
         db.session.commit()
-        print("  ✓ Admin user updated (admin / admin123)")
+        print("   Admin user updated (admin / admin123)")
         return
 
     admin = User(
@@ -178,7 +178,7 @@ def seed_admin_user():
 
     db.session.add(admin)
     db.session.commit()
-    print("  ✓ Admin user created (admin / admin123)")
+    print("   Admin user created (admin / admin123)")
 
 
 def seed_sla_policies():
@@ -196,7 +196,7 @@ def seed_sla_policies():
             db.session.add(SLAPolicy(severity_level=severity, response_time_minutes=resp,
                                      resolution_time_minutes=res, escalation_required=esc))
     db.session.commit()
-    print("  ✓ SLA policies created")
+    print("   SLA policies created")
 
 
 def seed_org_structure():
@@ -218,7 +218,7 @@ def seed_org_structure():
             for tname in ["L1 Support", "Backbone Engineering", "Edge Computing"]:
                 db.session.add(Team(name=tname, department_id=net_ops.id))
             db.session.commit()
-    print("  ✓ Org structure created")
+    print("   Org structure created")
 
 
 def seed_sample_data():
@@ -229,7 +229,7 @@ def seed_sample_data():
     from models.incident import Incident
     from models.user import User
 
-    # ─── VENDORS ─────────────────────────────────────────────────────
+    #  VENDORS 
     vendors_data = [
         ("Cisco Systems", "USA", "support@cisco.com", "+1-800-553-6387", "https://cisco.com"),
         ("Fortinet", "USA", "support@fortinet.com", "+1-408-235-7700", "https://fortinet.com"),
@@ -245,9 +245,9 @@ def seed_sample_data():
             db.session.add(Vendor(vendor_name=v[0], country_of_origin=v[1], support_email=v[2],
                                   support_phone=v[3], website=v[4]))
     db.session.commit()
-    print("  ✓ Vendors seeded")
+    print("   Vendors seeded")
 
-    # ─── LOCATIONS ────────────────────────────────────────────────────
+    #  LOCATIONS 
     locs_data = [
         ("HQ - Karachi", "Karachi", "Pakistan", "Headquarters", "I.I Chundrigar Road", "Muhammad Usman", "+92-300-1234567"),
         ("DC - Lahore", "Lahore", "Pakistan", "Data Center", "Gulberg III", "Sara Ahmed", "+92-300-7654321"),
@@ -263,9 +263,9 @@ def seed_sample_data():
             db.session.add(Location(location_name=l[0], city=l[1], country=l[2], site_type=l[3],
                                     address_line=l[4], contact_person=l[5], contact_phone=l[6]))
     db.session.commit()
-    print("  ✓ Locations seeded")
+    print("   Locations seeded")
 
-    # ─── TECHNICIANS ─────────────────────────────────────────────────
+    #  TECHNICIANS 
     techs_data = [
         ("Usman Ahmed", "usman.ahmed@teletrack.pk", "+92-312-5556667", "Network Security", "Morning", "available"),
         ("Sara Khan", "sara.khan@teletrack.pk", "+92-312-5556668", "Cloud Infrastructure", "Evening", "busy"),
@@ -279,15 +279,15 @@ def seed_sample_data():
             db.session.add(Technician(full_name=t[0], email=t[1], phone=t[2],
                                       specialization=t[3], shift=t[4], status=t[5]))
     db.session.commit()
-    print("  ✓ Technicians seeded")
+    print("   Technicians seeded")
 
-    # ─── DEVICES ─────────────────────────────────────────────────────
+    #  DEVICES 
     all_vendors = Vendor.query.all()
     all_locs = Location.query.all()
     dev_types = ["Router", "Switch", "Firewall", "Server", "Access Point"]
 
-    if Device.query.count() < 15:
-        for i in range(1, 26):
+    if Device.query.count() < 50:
+        for i in range(1, 51):
             name = f"KHI-NODE-{i:02d}"
             if not Device.query.filter_by(device_name=name).first():
                 db.session.add(Device(
@@ -305,26 +305,33 @@ def seed_sample_data():
                     temperature=round(random.uniform(25, 55), 1),
                 ))
         db.session.commit()
-    print("  ✓ Devices seeded")
+    print("   Devices seeded")
 
-    # ─── ALERTS ─────────────────────────────────────────────────────
+    #  ALERTS 
     all_devices = Device.query.all()
     all_techs = Technician.query.all()
 
-    if Alert.query.count() < 10:
+    if Alert.query.count() < 30:
         alert_types = [
-            ("High CPU Usage", "critical", "Router CPU is at 98% — immediate action required"),
+            ("High CPU Usage", "critical", "Router CPU is at 98%  immediate action required"),
             ("Link Down", "high", "Fiber link between nodes is down"),
             ("Auth Failure", "medium", "Repeated failed login attempts detected"),
-            ("Temperature High", "high", "Server room temperature exceeded 35°C"),
+            ("Temperature High", "high", "Server room temperature exceeded 35C"),
             ("Memory Leak", "medium", "Switch memory usage increasing rapidly"),
             ("Fan Failure", "critical", "Cooling fan stopped on core switch"),
             ("Connectivity Loss", "high", "Intermittent packet loss on backbone"),
             ("Hardware Fault", "critical", "RAID controller degraded"),
             ("High Latency", "medium", "Response time exceeded 200ms threshold"),
             ("Firmware Outdated", "low", "Device firmware is 6+ months behind"),
+            ("Bandwidth Saturated", "high", "Uplink interface is running at 99% capacity"),
+            ("BGP Peer Down", "critical", "BGP session to upstream provider dropped"),
+            ("Power Supply Failure", "high", "Redundant power supply unit A failed"),
+            ("Disk Space Low", "medium", "System partition is 95% full"),
+            ("Malware Detected", "critical", "Suspicious traffic pattern matched botnet signature"),
         ]
-        for i, (atype, sev, msg) in enumerate(alert_types):
+        # Generate 30 alerts
+        for i in range(30):
+            atype, sev, msg = random.choice(alert_types)
             dev = random.choice(all_devices)
             tech = random.choice(all_techs) if all_techs else None
             db.session.add(Alert(
@@ -333,28 +340,33 @@ def seed_sample_data():
                 alert_time=datetime.now(timezone.utc) - timedelta(hours=i * 2),
             ))
         db.session.commit()
-    print("  ✓ Alerts seeded")
+    print("   Alerts seeded")
 
-    # ─── INCIDENTS ─────────────────────────────────────────────────────
+    #  INCIDENTS 
     admin = User.query.filter_by(username="admin").first()
     admin_id = admin.id if admin else 1
 
-    if Incident.query.count() < 3:
+    if Incident.query.count() < 15:
         incidents = [
             ("Core Network Outage", "Major backbone failure affecting all eastern region nodes", "critical"),
-            ("Fiber Cut — Lahore Link", "Physical fiber damage on trunk route between HQ and DC", "high"),
+            ("Fiber Cut  Lahore Link", "Physical fiber damage on trunk route between HQ and DC", "high"),
             ("BGP Hijack Attempt", "Suspicious BGP route announcement detected from unknown AS", "critical"),
-            ("SAN Storage Failure", "Primary SAN array degraded — DR failover initiated", "high"),
+            ("SAN Storage Failure", "Primary SAN array degraded  DR failover initiated", "high"),
+            ("Cooling System Failure", "Data center HVAC unit 2 stopped responding", "high"),
+            ("DDoS Attack on Edge", "Volumetric DDoS attack mitigating at edge firewalls", "critical"),
+            ("Database Sync Lag", "Replica sync lagging by 45 minutes", "medium"),
+            ("SSL Certificate Expiry", "Wildcard cert expiring in 48 hours", "high"),
         ]
-        for title, desc, sev in incidents:
-            db.session.add(Incident(title=title, description=desc, status="open",
+        for i in range(15):
+            title, desc, sev = random.choice(incidents)
+            db.session.add(Incident(title=title, description=desc, status=random.choice(["open", "acknowledged", "resolved"]),
                                     severity=sev, reported_by_id=admin_id))
         db.session.commit()
-    print("  ✓ Incidents seeded")
+    print("   Incidents seeded")
 
-    # ─── MAINTENANCE LOGS ─────────────────────────────────────────────
-    if MaintenanceLog.query.count() < 5:
-        for i in range(12):
+    #  MAINTENANCE LOGS 
+    if MaintenanceLog.query.count() < 30:
+        for i in range(30):
             dev = random.choice(all_devices)
             tech = random.choice(all_techs) if all_techs else None
             db.session.add(MaintenanceLog(
@@ -365,14 +377,14 @@ def seed_sample_data():
                 completed_date=datetime.now(timezone.utc) - timedelta(days=i),
             ))
         db.session.commit()
-    print("  ✓ Maintenance logs seeded")
+    print("   Maintenance logs seeded")
 
-    # ─── NETWORK LINKS ─────────────────────────────────────────────────
+    #  NETWORK LINKS 
     from models.supporting import NetworkLink
-    if NetworkLink.query.count() < 10:
+    if NetworkLink.query.count() < 40:
         link_types = ["Fiber", "Ethernet", "MPLS", "VPN Tunnel", "Wireless Bridge"]
         used_pairs = set()
-        for _ in range(20):
+        for _ in range(60):
             d1 = random.choice(all_devices)
             d2 = random.choice(all_devices)
             pair = (min(d1.id, d2.id), max(d1.id, d2.id))
@@ -382,29 +394,29 @@ def seed_sample_data():
                     source_device_id=d1.id, target_device_id=d2.id,
                     link_type=random.choice(link_types),
                     bandwidth=random.choice(["1 Gbps", "10 Gbps", "100 Gbps", "400 Gbps"]),
-                    status=random.choice(["active", "active", "active", "degraded"]),
+                    status=random.choice(["active", "active", "active", "degraded", "down"]),
                 ))
         db.session.commit()
-    print("  ✓ Network links seeded")
+    print("   Network links seeded")
 
-    # ─── AUDIT LOGS ─────────────────────────────────────────────────
+    #  AUDIT LOGS 
     from models.supporting import AuditLog
-    if AuditLog.query.count() < 10:
-        for i in range(20):
+    if AuditLog.query.count() < 100:
+        for i in range(100):
             db.session.add(AuditLog(
-                user_id=admin_id, action=random.choice(["LOGIN", "DEVICE_CREATE", "ALERT_RESOLVE", "CONFIG_CHANGE"]),
-                resource=random.choice(["devices", "alerts", "auth", "system"]),
-                timestamp=datetime.now(timezone.utc) - timedelta(minutes=i * 30),
+                user_id=admin_id, action=random.choice(["LOGIN", "DEVICE_CREATE", "ALERT_RESOLVE", "CONFIG_CHANGE", "USER_UPDATE", "REPORT_GENERATE"]),
+                resource=random.choice(["devices", "alerts", "auth", "system", "users"]),
+                timestamp=datetime.now(timezone.utc) - timedelta(minutes=i * 15),
             ))
         db.session.commit()
-    print("  ✓ Audit logs seeded")
+    print("   Audit logs seeded")
 
 
 def seed_all():
     """Run all seed functions."""
-    print("\n" + "═" * 55)
-    print("  TeleTrack Enterprise — Database Seeding")
-    print("═" * 55 + "\n")
+    print("\n" + "" * 55)
+    print("  TeleTrack Enterprise  Database Seeding")
+    print("" * 55 + "\n")
 
     seed_permissions()
     seed_roles()
@@ -413,7 +425,7 @@ def seed_all():
     seed_org_structure()
     seed_sample_data()
 
-    print("\n  ✅ All seed data loaded successfully!")
+    print("\n   All seed data loaded successfully!")
     print("  Login: admin / admin123\n")
 
 

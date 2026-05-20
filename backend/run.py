@@ -16,4 +16,4 @@ if __name__ == "__main__":
     print("  API Docs:   http://127.0.0.1:5000/api/health")
     print("=" * 60 + "\n")
 
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=True, host="0.0.0.0", port=5001, allow_unsafe_werkzeug=True)

@@ -108,8 +108,19 @@ def get_locations():
     try:
         query = Location.query.filter_by(is_deleted=False).order_by(Location.location_name)
         items, total, page, per_page = paginate_query(query, default_per_page=50)
-        return paginated_response([l.to_dict() for l in items], total, page, per_page)
+        
+        serialized_items = []
+        for l in items:
+            try:
+                serialized_items.append(l.to_dict())
+            except Exception as e:
+                print(f"CRITICAL ERROR serializing location {l.id}: {str(e)}")
+                raise e
+                
+        return paginated_response(serialized_items, total, page, per_page)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return error_response(str(e))
 
 @locations_bp.route("/<int:lid>", methods=["GET"])
@@ -186,6 +197,17 @@ def get_vendors():
         query = Vendor.query.filter_by(is_deleted=False).order_by(Vendor.vendor_name)
         items, total, page, per_page = paginate_query(query, default_per_page=50)
         return paginated_response([v.to_dict() for v in items], total, page, per_page)
+    except Exception as e:
+        return error_response(str(e))
+
+@vendors_bp.route("/<int:vid>", methods=["GET"])
+@jwt_required()
+def get_vendor(vid):
+    try:
+        v = Vendor.query.filter_by(id=vid, is_deleted=False).first()
+        if not v:
+            return error_response("Vendor not found", 404)
+        return success_response(v.to_dict())
     except Exception as e:
         return error_response(str(e))
 

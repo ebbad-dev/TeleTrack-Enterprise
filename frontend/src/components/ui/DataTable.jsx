@@ -1,34 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  flexRender,
+  useReactTable, getCoreRowModel, getSortedRowModel,
+  getFilteredRowModel, getPaginationRowModel, flexRender,
 } from '@tanstack/react-table';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, Download } from 'lucide-react';
 import { Card } from './Card';
 import { Button } from './Button';
 
-export function DataTable({ columns: initialColumns, data, loading, globalFilter, setGlobalFilter, searchPlaceholder = "Search...", noDataMessage = "NO RESULTS FOUND", onEdit, onDelete, onExport, exportLabel = "Export CSV" }) {
-  
+export function DataTable({ columns: initialColumns, data, loading, globalFilter, setGlobalFilter, noDataMessage = "NO RECORDS FOUND", onEdit, onDelete, onExport }) {
+
+  const [exportOpen, setExportOpen] = useState(false);
+
   const columns = React.useMemo(() => {
     let cols = [...initialColumns];
     if (onEdit || onDelete) {
       cols.push({
-        id: 'actions',
-        header: 'Actions',
+        id: 'actions', header: 'Actions', size: 90,
         cell: (info) => (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             {onEdit && (
-              <button onClick={() => onEdit(info.row.original)} className="p-1.5 text-textMuted hover:text-primary transition-colors rounded hover:bg-primary/10">
+              <button onClick={() => onEdit(info.row.original)}
+                className="p-1.5 text-textMuted hover:text-primary transition-colors rounded-lg hover:bg-primary/10">
                 <Edit size={14} />
               </button>
             )}
             {onDelete && (
-              <button onClick={() => onDelete(info.row.original.id || info.row.original.device_id)} className="p-1.5 text-textMuted hover:text-error transition-colors rounded hover:bg-error/10">
+              <button onClick={() => onDelete(info.row.original.id || info.row.original.device_id)}
+                className="p-1.5 text-textMuted hover:text-error transition-colors rounded-lg hover:bg-error/10">
                 <Trash2 size={14} />
               </button>
             )}
@@ -40,53 +39,38 @@ export function DataTable({ columns: initialColumns, data, loading, globalFilter
   }, [initialColumns, onEdit, onDelete]);
 
   const table = useReactTable({
-    data,
-    columns,
+    data, columns,
     state: { globalFilter },
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 15 } },
   });
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.05 } }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: -10 },
-    show: { opacity: 1, x: 0 }
-  };
-
   return (
-    <Card className="p-0 overflow-hidden flex flex-col h-full min-h-[400px]">
+    <Card className="p-0 overflow-hidden flex flex-col h-full min-h-[400px] border-border/50">
       {loading ? (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-primary font-mono text-sm tracking-widest animate-pulse">FETCHING DATABANKS...</div>
+        <div className="flex flex-col items-center justify-center h-64 space-y-3">
+          <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="text-primary font-mono text-xs tracking-widest animate-pulse">LOADING DATA...</div>
         </div>
       ) : (
-        <div className="w-full flex-1 flex flex-col">
-          <div className="overflow-x-auto flex-1">
+        <div className="w-full flex-1 flex flex-col min-h-0">
+          <div className="overflow-auto flex-1">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs text-textMuted uppercase bg-surfaceHighlight border-b border-border sticky top-0 z-10">
-                {table.getHeaderGroups().map(headerGroup => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map(header => (
-                      <th 
-                        key={header.id} 
-                        onClick={header.column.getToggleSortingHandler()}
-                        className="px-6 py-4 cursor-pointer hover:text-primary transition-colors select-none group whitespace-nowrap"
-                      >
-                        <div className="flex items-center space-x-1">
+              <thead className="text-[10px] text-textMuted uppercase bg-surface border-b border-border sticky top-0 z-10">
+                {table.getHeaderGroups().map(hg => (
+                  <tr key={hg.id}>
+                    {hg.headers.map(header => (
+                      <th key={header.id} onClick={header.column.getToggleSortingHandler()}
+                        className="px-5 py-3.5 cursor-pointer hover:text-primary transition-colors select-none group whitespace-nowrap tracking-wider">
+                        <div className="flex items-center space-x-1.5">
                           <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
                           <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            {{
-                              asc: <ChevronUp size={14} />,
-                              desc: <ChevronDown size={14} />,
-                            }[header.column.getIsSorted()] ?? <ChevronDown size={14} className="text-textMuted/30" />}
+                            {{ asc: <ChevronUp size={12} />, desc: <ChevronDown size={12} /> }
+                              [header.column.getIsSorted()] ?? <ChevronDown size={12} className="text-textMuted/20" />}
                           </span>
                         </div>
                       </th>
@@ -94,20 +78,14 @@ export function DataTable({ columns: initialColumns, data, loading, globalFilter
                   </tr>
                 ))}
               </thead>
-              <motion.tbody 
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="divide-y divide-border/50"
-              >
-                {table.getRowModel().rows.map(row => (
-                  <motion.tr 
-                    key={row.id} 
-                    variants={itemVariants}
-                    className="group hover:bg-surfaceHighlight/30 transition-colors"
-                  >
+              <tbody className="divide-y divide-border/30">
+                {table.getRowModel().rows.map((row, i) => (
+                  <motion.tr key={row.id}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                    className="group hover:bg-primary/[0.03] transition-colors">
                     {row.getVisibleCells().map(cell => (
-                      <td key={cell.id} className="px-6 py-3 whitespace-nowrap">
+                      <td key={cell.id} className="px-5 py-3 whitespace-nowrap">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -115,55 +93,67 @@ export function DataTable({ columns: initialColumns, data, loading, globalFilter
                 ))}
                 {table.getRowModel().rows.length === 0 && (
                   <tr>
-                    <td colSpan={columns.length} className="px-6 py-12 text-center text-textMuted font-mono text-lg">
+                    <td colSpan={columns.length} className="px-6 py-16 text-center text-textMuted font-mono text-sm">
                       {noDataMessage}
                     </td>
                   </tr>
                 )}
-              </motion.tbody>
+              </tbody>
             </table>
           </div>
-          
-          {/* Pagination + Export Controls */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-surfaceHighlight/20 shrink-0">
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface/50 shrink-0">
             <div className="flex items-center space-x-3">
-              <div className="text-xs text-textMuted font-mono hidden sm:block">
-                Showing {table.getRowModel().rows.length} of {data.length} entries
-              </div>
+              <span className="text-[10px] text-textMuted font-mono hidden sm:block">
+                {table.getFilteredRowModel().rows.length} records
+                {globalFilter && ` (filtered from ${data.length})`}
+              </span>
+
+              {/* Page size */}
+              <select value={table.getState().pagination.pageSize}
+                onChange={e => table.setPageSize(Number(e.target.value))}
+                className="bg-surface border border-border rounded text-[10px] font-mono text-textMuted px-2 py-1 focus:outline-none focus:border-primary">
+                {[10, 15, 25, 50].map(s => <option key={s} value={s}>{s} / page</option>)}
+              </select>
+
+              {/* Export */}
               {onExport && (
-                <div className="relative group">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="flex items-center space-x-1.5 text-xs font-mono text-textMuted hover:text-primary border border-border hover:border-primary/50"
-                  >
-                    <Download size={14} />
-                    <span>EXPORT</span>
+                <div className="relative">
+                  <Button variant="ghost" size="sm" onClick={() => setExportOpen(!exportOpen)}
+                    className="flex items-center space-x-1.5 text-[10px] font-mono text-textMuted hover:text-primary border border-border hover:border-primary/40 px-2.5 py-1.5">
+                    <Download size={12} /><span>EXPORT</span>
                   </Button>
-                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:flex flex-col bg-surfaceHighlight border border-border rounded-md shadow-lg overflow-hidden min-w-[120px]">
-                    <button onClick={() => onExport('pdf')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">PDF Report</button>
-                    <button onClick={() => onExport('xlsx')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">Excel (XLSX)</button>
-                    <button onClick={() => onExport('csv')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">CSV Data</button>
-                    <button onClick={() => onExport('txt')} className="px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/20 text-left transition-colors">Notepad (TXT)</button>
-                  </div>
+                  {exportOpen && (
+                    <div className="absolute bottom-full left-0 mb-1 bg-surface border border-border rounded-lg shadow-xl overflow-hidden min-w-[130px] z-50">
+                      {[['pdf', 'PDF Report'], ['xlsx', 'Excel'], ['csv', 'CSV'], ['txt', 'Text']].map(([fmt, label]) => (
+                        <button key={fmt} onClick={() => { onExport(fmt); setExportOpen(false); }}
+                          className="block w-full px-4 py-2 text-xs font-mono text-textMain hover:bg-primary/10 hover:text-primary text-left transition-colors">
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-            <div className="flex space-x-2">
-              <Button variant="ghost" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
-                <ChevronsLeft size={16} />
+
+            {/* Pagination */}
+            <div className="flex items-center space-x-1">
+              <Button variant="ghost" size="sm" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()} className="p-1.5">
+                <ChevronsLeft size={14} />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                <ChevronLeft size={16} />
+              <Button variant="ghost" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="p-1.5">
+                <ChevronLeft size={14} />
               </Button>
-              <span className="flex items-center px-4 text-xs font-mono font-bold text-primary">
-                {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+              <span className="px-3 text-[10px] font-mono font-bold text-primary tabular-nums">
+                {table.getState().pagination.pageIndex + 1} / {table.getPageCount() || 1}
               </span>
-              <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                <ChevronRight size={16} />
+              <Button variant="ghost" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="p-1.5">
+                <ChevronRight size={14} />
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
-                <ChevronsRight size={16} />
+              <Button variant="ghost" size="sm" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()} className="p-1.5">
+                <ChevronsRight size={14} />
               </Button>
             </div>
           </div>

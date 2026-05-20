@@ -42,6 +42,15 @@ export const filesApi = {
     downloadFile(`/files/download/${attachmentId}`, filename),
 };
 
+export const databaseApi = {
+  getActiveDevicesView: () => apiClient.get('/database/views/active-devices'),
+  getCriticalAlertsView: () => apiClient.get('/database/views/critical-alerts'),
+  getOpenIncidentsView: () => apiClient.get('/database/views/open-incidents'),
+  getTriggerHistory: () => apiClient.get('/database/triggers/status-history'),
+  getProcedureStats: () => apiClient.get('/database/procedures/network-stats'),
+  getIndexes: () => apiClient.get('/database/indexes'),
+};
+
 export const exportApi = {
   exportDevices: (format = 'csv') => 
     downloadFile(`/export/devices?format=${format}`, `teletrack_devices.${format}`),

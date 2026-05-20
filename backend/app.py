@@ -15,7 +15,7 @@ from config import get_config
 from extensions import db, jwt, cors, limiter, migrate, socketio
 from middleware.error_handler import register_error_handlers
 from middleware.request_logger import register_request_logger
-from routes import register_blueprints
+from routes import register_routes
 from auth.routes import auth_bp
 
 
@@ -28,21 +28,8 @@ def create_app(config_class=None, config_overrides=None):
 
     app = Flask(__name__, instance_path=instance_path)
 
-    @app.route("/api/debug", methods=["GET"])
-    def debug_top():
-        import os
-        import sqlalchemy
-        try:
-            engine = db.engine
-            inspector = sqlalchemy.inspect(engine)
-            tables = inspector.get_table_names()
-            return jsonify({
-                "uri": app.config.get("SQLALCHEMY_DATABASE_URI"),
-                "tables": tables,
-                "cwd": os.getcwd()
-            })
-        except Exception as e:
-            return jsonify({"error": str(e)})
+    # In-memory token blocklist (use Redis in production)
+    app.config['TOKEN_BLOCKLIST'] = set()
 
     # Load configuration
     if config_class is None:
@@ -97,8 +84,8 @@ def create_app(config_class=None, config_overrides=None):
     # Token blocklist check (for logout/revocation support)
     @jwt.token_in_blocklist_loader
     def check_token_blocklist(jwt_header, jwt_payload):
-        # For now, don't block any tokens - full session tracking comes with Redis
-        return False
+        jti = jwt_payload.get("jti")
+        return jti in app.config.get('TOKEN_BLOCKLIST', set())
 
     # ─── Register Error Handlers ──────────────────────────────────
     register_error_handlers(app)
@@ -107,8 +94,7 @@ def create_app(config_class=None, config_overrides=None):
     register_request_logger(app)
 
     # ─── Register Blueprints ──────────────────────────────────────
-    app.register_blueprint(auth_bp)
-    register_blueprints(app)
+    register_routes(app)
 
     # ─── Prometheus Monitoring Middleware ──────────────────────────
     from utils.metrics import init_metrics_middleware
