@@ -290,11 +290,16 @@ def seed_sample_data():
         for i in range(1, 51):
             name = f"KHI-NODE-{i:02d}"
             if not Device.query.filter_by(device_name=name).first():
+                d_type = random.choice(dev_types)
                 db.session.add(Device(
                     device_name=name,
-                    device_type=random.choice(dev_types),
+                    device_type=d_type,
                     vendor_id=all_vendors[i % len(all_vendors)].id if all_vendors else None,
                     model=f"Model-X{i}",
+                    serial_number=f"SN-TTL-{i:06d}",
+                    firmware_version=f"v15.{random.randint(1,4)}.{random.randint(0,9)}",
+                    installed_date=datetime.now(timezone.utc) - timedelta(days=random.randint(60, 500)),
+                    notes=f"Primary {d_type} node serving the network routing plane.",
                     ip_address=f"10.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}",
                     mac_address=f"00:50:56:AB:{random.randint(10,99)}:{i:02X}",
                     location_id=all_locs[i % len(all_locs)].id if all_locs else 1,
@@ -359,8 +364,18 @@ def seed_sample_data():
         ]
         for i in range(15):
             title, desc, sev = random.choice(incidents)
-            db.session.add(Incident(title=title, description=desc, status=random.choice(["open", "acknowledged", "resolved"]),
-                                    severity=sev, reported_by_id=admin_id))
+            db.session.add(Incident(
+                title=title, 
+                description=desc, 
+                status=random.choice(["open", "acknowledged", "resolved"]),
+                severity=sev, 
+                reported_by_id=admin_id,
+                impact="Backbone routing failover latency peaked at 180ms.",
+                affected_services="NOC Monitoring, Cloud Sync, Backup Storage",
+                root_cause="Degraded transit media interface.",
+                resolution_summary="Rerouted transit and replaced local fiber transceiver.",
+                lessons_learned="Incorporate multi-homed paths for edge switches."
+            ))
         db.session.commit()
     print("   Incidents seeded")
 
@@ -372,8 +387,10 @@ def seed_sample_data():
             db.session.add(MaintenanceLog(
                 device_id=dev.id, technician_id=tech.id if tech else None,
                 maintenance_type=random.choice(["Firmware Patch", "Hardware Replacement", "Preventive", "Configuration Change"]),
-                description="Scheduled maintenance completed successfully.",
+                description="Scheduled maintenance checklist completed. Verified status and log outputs.",
+                duration_minutes=random.choice([30, 60, 90, 120]),
                 outcome="Success",
+                notes="System health is normal and all services transitioned clean.",
                 completed_date=datetime.now(timezone.utc) - timedelta(days=i),
             ))
         db.session.commit()

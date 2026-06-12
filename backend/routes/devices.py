@@ -162,6 +162,10 @@ def create_device():
         db.session.add(audit)
         db.session.commit()
 
+        # In-app Notification for the active user
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="devices", action_type="CREATE", name=device.device_name)
+
         return success_response(device.to_dict(), "Device created successfully", 201)
     except Exception as e:
         db.session.rollback()
@@ -207,6 +211,10 @@ def update_device(device_id):
         )
         db.session.add(audit)
         db.session.commit()
+
+        # In-app Notification for the active user
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="devices", action_type="UPDATE", name=device.device_name)
 
         return success_response(device.to_dict(), "Device updated successfully")
     except Exception as e:
@@ -292,6 +300,10 @@ def delete_device(device_id):
         db.session.add(audit)
         db.session.commit()
 
+        # In-app Notification for the active user
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="devices", action_type="DELETE", name=device.device_name)
+
         return success_response(message="Device deleted successfully")
     except Exception as e:
         db.session.rollback()
@@ -340,12 +352,34 @@ def discover_network():
 
     subnet = data["subnet"]
     
-    # Trigger Celery task asynchronously
-    from tasks.discovery import scan_subnet
-    task = scan_subnet.delay(subnet, default_type=data.get("default_type", "Server"))
-    
-    from utils.response import success_response
-    return success_response({
-        "message": f"Network discovery initiated for {subnet}", 
-        "task_id": task.id
-    })
+    # Try Celery first, fallback to standard python threading if Redis/Celery is unavailable (e.g. in dev environments)
+    try:
+        from tasks.discovery import scan_subnet
+        task = scan_subnet.delay(subnet, default_type=data.get("default_type", "Server"))
+        task_id = task.id
+        from utils.response import success_response
+        return success_response({
+            "message": f"Network discovery initiated for {subnet} (Celery)", 
+            "task_id": task_id
+        })
+    except Exception as e:
+        # Import dynamically to avoid issues
+        import threading
+        from tasks.discovery import scan_subnet as scan_subnet_sync
+        
+        # Fire in a background thread so the server doesn't freeze
+        thread = threading.Thread(
+            target=scan_subnet_sync,
+            args=(subnet,),
+            kwargs={
+                "default_type": data.get("default_type", "Server")
+            }
+        )
+        thread.daemon = True
+        thread.start()
+        
+        from utils.response import success_response
+        return success_response({
+            "message": f"Network discovery initiated for {subnet} (Dev Fallback Thread)", 
+            "task_id": "sync-thread"
+        })

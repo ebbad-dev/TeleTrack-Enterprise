@@ -137,3 +137,28 @@ def notify_incident_created(incident):
             notification_type="warning",
             link=f"/incidents",
         )
+
+
+def notify_crud_action(user_id, resource_type, action_type, name):
+    """
+    Create an in-app notification when a CRUD action (CREATE, UPDATE, DELETE) is performed.
+    """
+    action_verbs = {
+        "CREATE": "created",
+        "UPDATE": "updated",
+        "DELETE": "deleted"
+    }
+    verb = action_verbs.get(action_type.upper(), "modified")
+    
+    emoji = "➕" if action_type.upper() == "CREATE" else "✏️" if action_type.upper() == "UPDATE" else "🗑️"
+    
+    title = f"{resource_type.title()} {action_type.title()}d"
+    message = f"{emoji} Record '{name}' in {resource_type} table was successfully {verb}."
+    
+    create_notification(
+        user_id=user_id or 1,
+        title=title,
+        message=message,
+        notification_type="success" if action_type.upper() != "DELETE" else "warning",
+        link=f"/{resource_type}"
+    )

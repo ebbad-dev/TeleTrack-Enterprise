@@ -60,6 +60,8 @@ def create_technician():
                        status=data.get("status", "available"), image_url=data.get("image_url"))
         db.session.add(t)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="technicians", action_type="CREATE", name=t.full_name)
         return success_response(t.to_dict(), "Technician created", 201)
     except Exception as e:
         db.session.rollback()
@@ -78,6 +80,8 @@ def update_technician(tid):
             if f in data:
                 setattr(t, f, data[f])
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="technicians", action_type="UPDATE", name=t.full_name)
         return success_response(t.to_dict(), "Technician updated")
     except Exception as e:
         db.session.rollback()
@@ -93,6 +97,8 @@ def delete_technician(tid):
             return error_response("Technician not found", 404)
         t.soft_delete()
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="technicians", action_type="DELETE", name=t.full_name)
         return success_response(message="Technician deleted")
     except Exception as e:
         db.session.rollback()
@@ -148,6 +154,8 @@ def create_location():
                        image_url=data.get("image_url"))
         db.session.add(loc)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="locations", action_type="CREATE", name=loc.location_name)
         return success_response(loc.to_dict(), "Location created", 201)
     except Exception as e:
         db.session.rollback()
@@ -166,6 +174,8 @@ def update_location(lid):
             if f in data:
                 setattr(loc, f, data[f])
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="locations", action_type="UPDATE", name=loc.location_name)
         return success_response(loc.to_dict(), "Location updated")
     except Exception as e:
         db.session.rollback()
@@ -181,6 +191,8 @@ def delete_location(lid):
             return error_response("Location not found", 404)
         loc.soft_delete()
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="locations", action_type="DELETE", name=loc.location_name)
         return success_response(message="Location deleted")
     except Exception as e:
         db.session.rollback()
@@ -224,6 +236,8 @@ def create_vendor():
                    website=data.get("website"))
         db.session.add(v)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="vendors", action_type="CREATE", name=v.vendor_name)
         return success_response(v.to_dict(), "Vendor created", 201)
     except Exception as e:
         db.session.rollback()
@@ -242,6 +256,8 @@ def update_vendor(vid):
             if f in data:
                 setattr(v, f, data[f])
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="vendors", action_type="UPDATE", name=v.vendor_name)
         return success_response(v.to_dict(), "Vendor updated")
     except Exception as e:
         db.session.rollback()
@@ -257,6 +273,8 @@ def delete_vendor(vid):
             return error_response("Vendor not found", 404)
         v.soft_delete()
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="vendors", action_type="DELETE", name=v.vendor_name)
         return success_response(message="Vendor deleted")
     except Exception as e:
         db.session.rollback()
@@ -291,6 +309,8 @@ def create_maintenance():
                            outcome=data.get("outcome"), notes=data.get("notes"), image_url=data.get("image_url"))
         db.session.add(m)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="maintenance", action_type="CREATE", name=f"Task #{m.id} ({m.maintenance_type})")
         return success_response(m.to_dict(), "Maintenance log created", 201)
     except Exception as e:
         db.session.rollback()
@@ -310,6 +330,8 @@ def update_maintenance(mid):
             if f in data:
                 setattr(m, f, data[f])
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="maintenance", action_type="UPDATE", name=f"Task #{m.id} ({m.maintenance_type})")
         return success_response(m.to_dict(), "Maintenance log updated")
     except Exception as e:
         db.session.rollback()
@@ -325,6 +347,8 @@ def delete_maintenance(mid):
             return error_response("Maintenance log not found", 404)
         db.session.delete(m)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="maintenance", action_type="DELETE", name=f"Task #{mid}")
         return success_response(message="Maintenance log deleted")
     except Exception as e:
         db.session.rollback()
@@ -360,6 +384,8 @@ def create_link():
                            status=data.get("status", "active"))
         db.session.add(link)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="network-links", action_type="CREATE", name=f"Link #{link.id} ({link.source_device_id} → {link.target_device_id})")
         return success_response(link.to_dict(), "Network link created", 201)
     except Exception as e:
         db.session.rollback()
@@ -378,6 +404,8 @@ def update_link(lid):
             if f in data:
                 setattr(link, f, data[f])
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="network-links", action_type="UPDATE", name=f"Link #{link.id} ({link.source_device_id} → {link.target_device_id})")
         return success_response(link.to_dict(), "Network link updated")
     except Exception as e:
         db.session.rollback()
@@ -393,6 +421,8 @@ def delete_link(lid):
             return error_response("Network link not found", 404)
         db.session.delete(link)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="network-links", action_type="DELETE", name=f"Link #{lid}")
         return success_response(message="Network link deleted")
     except Exception as e:
         db.session.rollback()
@@ -470,6 +500,8 @@ def create_incident():
                               performed_by_id=current_user_id())
         db.session.add(tl)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="incidents", action_type="CREATE", name=inc.title)
         return success_response(inc.to_dict(), "Incident created", 201)
     except Exception as e:
         db.session.rollback()
@@ -515,6 +547,8 @@ def update_incident(iid):
                                   performed_by_id=current_user_id())
             db.session.add(tl)
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="incidents", action_type="UPDATE", name=inc.title)
         return success_response(inc.to_dict(), "Incident updated")
     except Exception as e:
         db.session.rollback()
@@ -530,6 +564,8 @@ def delete_incident(iid):
             return error_response("Incident not found", 404)
         inc.soft_delete()
         db.session.commit()
+        from services.notification_service import notify_crud_action
+        notify_crud_action(user_id=current_user_id(), resource_type="incidents", action_type="DELETE", name=inc.title)
         return success_response(message="Incident deleted")
     except Exception as e:
         db.session.rollback()

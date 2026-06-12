@@ -44,4 +44,19 @@ const useToastStore = create((set) => ({
   },
 }));
 
+// Attach convenience methods directly to the hook function so that
+// components doing `const toast = useToastStore; toast.success(...)` work seamlessly.
+useToastStore.success = (message, title = 'Success') => {
+  return useToastStore.getState().addToast({ type: 'success', title, message });
+};
+useToastStore.error = (message, title = 'Error') => {
+  return useToastStore.getState().addToast({ type: 'error', title, message, duration: 6000 });
+};
+useToastStore.warning = (message, title = 'Warning') => {
+  return useToastStore.getState().addToast({ type: 'warning', title, message });
+};
+useToastStore.info = (message, title = 'Info') => {
+  return useToastStore.getState().addToast({ type: 'info', title, message });
+};
+
 export default useToastStore;

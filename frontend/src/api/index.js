@@ -48,7 +48,10 @@ export const databaseApi = {
   getOpenIncidentsView: () => apiClient.get('/database/views/open-incidents'),
   getTriggerHistory: () => apiClient.get('/database/triggers/status-history'),
   getProcedureStats: () => apiClient.get('/database/procedures/network-stats'),
+  getPredictiveAnalytics: () => apiClient.get('/database/procedures/predictive-analytics'),
+  getTimeTravel: (timestamp) => apiClient.get(`/database/time-travel?timestamp=${timestamp}`),
   getIndexes: () => apiClient.get('/database/indexes'),
+  getIndexSample: (table, col) => apiClient.get(`/database/indexes/${table}/${col}`),
 };
 
 export const exportApi = {
